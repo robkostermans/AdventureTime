@@ -17,94 +17,88 @@ src/features/feature-name/
 
 ## Feature Implementation Pattern
 
-### Base Feature Interface
+### Base Feature Types
 
 ```typescript
 // src/core/types.ts
-export interface BaseFeature {
-  readonly name: string;
-  readonly version: string;
-  init(): Promise<void> | void;
-  destroy(): Promise<void> | void;
-  isEnabled(): boolean;
-}
-
 export interface FeatureConfig {
   enabled: boolean;
   debug?: boolean;
 }
+
+export type FeatureInitFunction = (
+  config: FeatureConfig
+) => Promise<void> | void;
+export type FeatureDestroyFunction = () => Promise<void> | void;
+export type FeatureExecuteFunction = () => void;
 ```
 
 ### Feature Implementation Template
 
 ```typescript
 // src/features/example-feature/example-feature.ts
-import type { BaseFeature, FeatureConfig } from "../../core/types";
-import type { ExampleFeatureConfig, ExampleFeatureState } from "./types";
+import type { ExampleFeatureConfig } from "./types";
 
-export class ExampleFeature implements BaseFeature {
-  public readonly name = "ExampleFeature";
-  public readonly version = "1.0.0";
+let isInitialized = false;
+let config: ExampleFeatureConfig;
+let cleanupFunctions: (() => void)[] = [];
 
-  private config: ExampleFeatureConfig;
-  private state: ExampleFeatureState;
-  private cleanupFunctions: (() => void)[] = [];
-
-  constructor(config: ExampleFeatureConfig) {
-    this.config = { enabled: true, ...config };
-    this.state = {
-      initialized: false,
-      active: false,
-    };
+export async function initExampleFeature(
+  featureConfig: ExampleFeatureConfig
+): Promise<void> {
+  if (isInitialized) {
+    console.warn("ExampleFeature already initialized");
+    return;
   }
 
-  public async init(): Promise<void> {
-    if (!this.config.enabled) {
-      return;
+  config = { enabled: true, debug: false, ...featureConfig };
+
+  if (!config.enabled) {
+    return;
+  }
+
+  try {
+    await setupFeature();
+    attachEventListeners();
+    isInitialized = true;
+
+    if (config.debug) {
+      console.log("ExampleFeature initialized");
     }
-
-    try {
-      await this.setupFeature();
-      this.attachEventListeners();
-      this.state.initialized = true;
-
-      if (this.config.debug) {
-        console.log(`${this.name} initialized`);
-      }
-    } catch (error) {
-      console.error(`${this.name} initialization failed:`, error);
-      throw error;
-    }
+  } catch (error) {
+    console.error("ExampleFeature initialization failed:", error);
+    throw error;
   }
+}
 
-  public async destroy(): Promise<void> {
-    // Run cleanup functions
-    this.cleanupFunctions.forEach((cleanup) => cleanup());
-    this.cleanupFunctions = [];
+export function destroyExampleFeature(): void {
+  cleanupFunctions.forEach((cleanup) => cleanup());
+  cleanupFunctions = [];
+  isInitialized = false;
+}
 
-    this.state.initialized = false;
-    this.state.active = false;
+export function executeExampleFeature(): void {
+  if (!isInitialized) {
+    throw new Error("ExampleFeature not initialized");
   }
+  // Feature execution logic
+  console.log("ExampleFeature executing...");
+}
 
-  public isEnabled(): boolean {
-    return this.config.enabled && this.state.initialized;
-  }
+async function setupFeature(): Promise<void> {
+  // Feature-specific setup logic
+}
 
-  private async setupFeature(): Promise<void> {
-    // Feature-specific setup logic
-  }
+function attachEventListeners(): void {
+  // Event listener setup with cleanup tracking
+  const handleClick = (event: Event) => {
+    console.log("ExampleFeature handling click:", event);
+  };
 
-  private attachEventListeners(): void {
-    // Event listener setup with cleanup tracking
-    const handleClick = (event: Event) => {
-      // Handle click
-    };
-
-    document.addEventListener("click", handleClick);
-    this.cleanupFunctions.push(() => {
-      document.removeEventListener("click", handleClick);
-    });
-  }
+  document.addEventListener("click", handleClick);
+  cleanupFunctions.push(() => {
+    document.removeEventListener("click", handleClick);
+  });
 }
 ```
 
@@ -125,13 +119,6 @@ export interface ExampleFeatureConfig extends FeatureConfig {
   };
 }
 
-export interface ExampleFeatureState {
-  initialized: boolean;
-  active: boolean;
-  lastUpdate?: Date;
-  data?: any[];
-}
-
 export interface ExampleFeatureEvents {
   onActivate?: () => void;
   onDeactivate?: () => void;
@@ -145,115 +132,81 @@ export interface ExampleFeatureEvents {
 
 ```typescript
 // src/features/example-feature/index.ts
-export { ExampleFeature } from "./example-feature";
-export type {
-  ExampleFeatureConfig,
-  ExampleFeatureState,
-  ExampleFeatureEvents,
-} from "./types";
+export {
+  initExampleFeature,
+  destroyExampleFeature,
+  executeExampleFeature,
+} from "./example-feature";
+export type { ExampleFeatureConfig, ExampleFeatureEvents } from "./types";
 
 // Optional: Export utilities if needed by other features
 export { exampleUtils } from "./utils";
 ```
 
-## Feature Registration System
+## Feature Management
 
-### Feature Manager
+### Simple Feature Initialization
 
 ```typescript
 // src/features/index.ts
-import type { BaseFeature } from "../core/types";
+import { initFeatureA, destroyFeatureA } from "./feature-a";
+import { initFeatureB, destroyFeatureB } from "./feature-b";
+import type { AppConfig } from "../core/types";
 
-export class FeatureManager {
-  private features = new Map<string, BaseFeature>();
-  private initializationOrder: string[] = [];
+export async function initFeatures(config: AppConfig): Promise<() => void> {
+  const cleanupFunctions: (() => void)[] = [];
 
-  public register(feature: BaseFeature, priority = 0): void {
-    this.features.set(feature.name, feature);
-
-    // Insert based on priority (higher priority first)
-    const insertIndex = this.initializationOrder.findIndex((name) => {
-      const existingFeature = this.features.get(name);
-      return existingFeature && this.getPriority(existingFeature) < priority;
-    });
-
-    if (insertIndex === -1) {
-      this.initializationOrder.push(feature.name);
-    } else {
-      this.initializationOrder.splice(insertIndex, 0, feature.name);
+  try {
+    // Initialize features based on config
+    if (config.features.featureA) {
+      await initFeatureA({ enabled: true, debug: config.debug });
+      cleanupFunctions.push(destroyFeatureA);
     }
-  }
 
-  public async initializeAll(): Promise<void> {
-    for (const featureName of this.initializationOrder) {
-      const feature = this.features.get(featureName);
-      if (feature && feature.isEnabled()) {
-        try {
-          await feature.init();
-        } catch (error) {
-          console.error(`Failed to initialize ${featureName}:`, error);
-        }
-      }
+    if (config.features.featureB) {
+      await initFeatureB({ enabled: true, debug: config.debug });
+      cleanupFunctions.push(destroyFeatureB);
     }
-  }
 
-  public async destroyAll(): Promise<void> {
-    // Destroy in reverse order
-    const reverseOrder = [...this.initializationOrder].reverse();
-
-    for (const featureName of reverseOrder) {
-      const feature = this.features.get(featureName);
-      if (feature) {
-        try {
-          await feature.destroy();
-        } catch (error) {
-          console.error(`Failed to destroy ${featureName}:`, error);
-        }
-      }
-    }
-  }
-
-  private getPriority(feature: BaseFeature): number {
-    // Default priority logic
-    return 0;
+    // Return cleanup function
+    return () => {
+      cleanupFunctions.forEach((cleanup) => cleanup());
+    };
+  } catch (error) {
+    // Cleanup any partially initialized features
+    cleanupFunctions.forEach((cleanup) => cleanup());
+    throw error;
   }
 }
 ```
 
 ## Feature Communication
 
-### Event System
+### Simple Event System
 
 ```typescript
-// src/core/events.ts
-export class EventBus {
-  private listeners = new Map<string, Set<Function>>();
+// Simple custom events for feature communication
+function emitFeatureEvent(eventName: string, data?: any): void {
+  const event = new CustomEvent(`adventure-time:${eventName}`, {
+    detail: data,
+  });
+  document.dispatchEvent(event);
+}
 
-  public on(event: string, callback: Function): () => void {
-    if (!this.listeners.has(event)) {
-      this.listeners.set(event, new Set());
-    }
+function listenToFeatureEvent(
+  eventName: string,
+  callback: (data: any) => void
+): () => void {
+  const handler = (event: CustomEvent) => {
+    callback(event.detail);
+  };
 
-    this.listeners.get(event)!.add(callback);
+  document.addEventListener(`adventure-time:${eventName}`, handler);
 
-    // Return unsubscribe function
-    return () => {
-      this.listeners.get(event)?.delete(callback);
-    };
-  }
-
-  public emit(event: string, data?: any): void {
-    const callbacks = this.listeners.get(event);
-    if (callbacks) {
-      callbacks.forEach((callback) => {
-        try {
-          callback(data);
-        } catch (error) {
-          console.error(`Event callback error for ${event}:`, error);
-        }
-      });
-    }
-  }
+  // Return cleanup function
+  return () => {
+    document.removeEventListener(`adventure-time:${eventName}`, handler);
+  };
 }
 ```
 
@@ -261,23 +214,21 @@ export class EventBus {
 
 ```typescript
 // In feature implementation
-export class ExampleFeature implements BaseFeature {
-  constructor(config: ExampleFeatureConfig, private eventBus: EventBus) {
-    // ...
-  }
+export async function initExampleFeature(
+  config: ExampleFeatureConfig
+): Promise<void> {
+  // Listen to other features
+  const cleanup = listenToFeatureEvent("other-feature:update", (data) => {
+    handleOtherFeatureUpdate(data);
+  });
 
-  public init(): void {
-    // Listen to other features
-    this.eventBus.on("other-feature:update", (data) => {
-      this.handleOtherFeatureUpdate(data);
-    });
+  cleanupFunctions.push(cleanup);
 
-    // Emit events for other features
-    this.eventBus.emit("example-feature:ready", {
-      feature: this.name,
-      version: this.version,
-    });
-  }
+  // Emit events for other features
+  emitFeatureEvent("example-feature:ready", {
+    feature: "ExampleFeature",
+    version: "1.0.0",
+  });
 }
 ```
 
@@ -318,48 +269,50 @@ export const exampleUtils = {
 
 ## Feature Styling
 
-### CSS-in-JS for Features
+### CSS Modules for Features
+
+```css
+/* src/features/example-feature/example-feature.module.css */
+.container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  z-index: 999999;
+}
+
+.button {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.button:hover {
+  background: #0056b3;
+}
+```
 
 ```typescript
-// src/features/example-feature/styles.ts
-export const exampleFeatureStyles = `
-  .example-feature {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    background: white;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    padding: 10px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    z-index: 999999;
-  }
+// Using CSS modules in feature
+import styles from "./example-feature.module.css";
 
-  .example-feature__button {
-    background: #007bff;
-    color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 4px;
-    cursor: pointer;
-  }
+function createFeatureElement(): HTMLElement {
+  const container = document.createElement("div");
+  container.className = styles.container;
 
-  .example-feature__button:hover {
-    background: #0056b3;
-  }
-`;
+  const button = document.createElement("button");
+  button.className = styles.button;
+  button.textContent = "Click me";
 
-export function injectExampleFeatureStyles(): () => void {
-  const styleElement = document.createElement("style");
-  styleElement.textContent = exampleFeatureStyles;
-  document.head.appendChild(styleElement);
-
-  // Return cleanup function
-  return () => {
-    if (styleElement.parentNode) {
-      styleElement.parentNode.removeChild(styleElement);
-    }
-  };
+  container.appendChild(button);
+  return container;
 }
 ```
 
@@ -369,11 +322,10 @@ export function injectExampleFeatureStyles(): () => void {
 
 ```typescript
 // src/features/example-feature/__tests__/example-feature.test.ts
-import { ExampleFeature } from "../example-feature";
+import { initExampleFeature, destroyExampleFeature } from "../example-feature";
 import type { ExampleFeatureConfig } from "../types";
 
 describe("ExampleFeature", () => {
-  let feature: ExampleFeature;
   let config: ExampleFeatureConfig;
 
   beforeEach(() => {
@@ -381,21 +333,20 @@ describe("ExampleFeature", () => {
       enabled: true,
       debug: false,
     };
-    feature = new ExampleFeature(config);
   });
 
-  afterEach(async () => {
-    await feature.destroy();
+  afterEach(() => {
+    destroyExampleFeature();
   });
 
   test("should initialize correctly", async () => {
-    await feature.init();
-    expect(feature.isEnabled()).toBe(true);
+    await initExampleFeature(config);
+    // Test feature functionality
   });
 
-  test("should handle disabled state", () => {
-    const disabledFeature = new ExampleFeature({ enabled: false });
-    expect(disabledFeature.isEnabled()).toBe(false);
+  test("should handle disabled state", async () => {
+    await initExampleFeature({ enabled: false });
+    // Test that feature doesn't activate when disabled
   });
 });
 ```
@@ -423,14 +374,12 @@ interface ExampleFeatureConfig {
 ## Usage
 
 ```typescript
-import { ExampleFeature } from "./features/example-feature";
+import { initExampleFeature } from "./features/example-feature";
 
-const feature = new ExampleFeature({
+await initExampleFeature({
   enabled: true,
   threshold: 100,
 });
-
-await feature.init();
 ```
 
 ## Events

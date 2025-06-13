@@ -10,7 +10,7 @@ project-root/
 │   ├── main.ts                 # Entry point and IIFE wrapper
 │   ├── core/
 │   │   ├── index.ts           # Core module exports
-│   │   ├── app.ts             # Main application class
+│   │   ├── app.ts             # Main application functions
 │   │   ├── types.ts           # Global type definitions
 │   │   └── utils.ts           # Shared utility functions
 │   ├── features/
@@ -24,9 +24,9 @@ project-root/
 │   │   │   └── types.ts       # Feature B specific types
 │   │   └── index.ts           # All features export
 │   └── styles/
-│       ├── index.ts           # Style exports
-│       ├── base.ts            # Base styles
-│       └── components.ts      # Component-specific styles
+│       ├── main.module.css    # Main styles
+│       ├── base.module.css    # Base styles
+│       └── components.module.css # Component-specific styles
 ├── specs/                     # Specification documents
 ├── dist/                      # Build output
 ├── package.json
@@ -48,7 +48,7 @@ project-root/
 ### Core Module (`src/core/`)
 
 - Contains application foundation and shared utilities
-- Exports main App class and global types
+- Exports main app functions and global types
 - Provides common functionality used across features
 
 ### Features Module (`src/features/`)
@@ -59,22 +59,23 @@ project-root/
 
 ### Styles Module (`src/styles/`)
 
-- CSS-in-JS style definitions
+- CSS modules for scoped styling
 - Organized by component/feature
-- Compiled inline with JavaScript
+- Compiled and bundled by Vite
 
 ## Import Patterns
 
 ```typescript
 // Clean feature imports
-import { FeatureA } from "./features/feature-a";
-import { FeatureB } from "./features/feature-b";
+import { initFeatureA } from "./features/feature-a";
+import { initFeatureB } from "./features/feature-b";
 
 // Core imports
-import { App, Utils } from "./core";
+import { initApp, utils } from "./core";
 
 // Style imports
-import { baseStyles, componentStyles } from "./styles";
+import styles from "./styles/main.module.css";
+import baseStyles from "./styles/base.module.css";
 ```
 
 ## Build Output

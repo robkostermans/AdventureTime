@@ -9,7 +9,7 @@ This document defines the main application initialization and IIFE (Immediately 
 The main entry point that wraps the entire application in an IIFE for bookmarklet compatibility.
 
 ```typescript
-import { App } from "./core";
+import { initApp, destroyApp } from "./core";
 import type { AppConfig } from "./core/types";
 
 // IIFE wrapper for bookmarklet compatibility
@@ -37,14 +37,26 @@ import type { AppConfig } from "./core/types";
   };
 
   // Initialize and start application
-  const app = new App(config);
+  async function startApp() {
+    try {
+      await initApp(config);
+    } catch (error) {
+      console.error("Failed to start AdventureTime:", error);
+    }
+  }
 
   // Wait for DOM ready
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", () => app.init());
+    document.addEventListener("DOMContentLoaded", startApp);
   } else {
-    app.init();
+    startApp();
   }
+
+  // Expose global cleanup
+  (window as any).AdventureTimeAPI = {
+    version: "1.0.0",
+    destroy: destroyApp,
+  };
 })();
 ```
 
@@ -72,13 +84,13 @@ import type { AppConfig } from "./core/types";
   "use strict";
 
   // All variables are scoped to this function
-  const app = new App(config);
+  await initApp(config);
 
   // Only expose what's necessary
   if (typeof window !== "undefined") {
     (window as any).AdventureTimeAPI = {
       version: "1.0.0",
-      destroy: () => app.destroy(),
+      destroy: destroyApp,
     };
   }
 })();
@@ -127,8 +139,7 @@ if (document.readyState === "loading") {
 
 ```typescript
 try {
-  const app = new App(config);
-  app.init();
+  await initApp(config);
 } catch (error) {
   console.error("AdventureTime initialization failed:", error);
 
@@ -216,26 +227,27 @@ const config = { ...defaultConfig, ...runtimeConfig };
 ### Cleanup Function
 
 ```typescript
-class App {
-  private cleanupFunctions: (() => void)[] = [];
+let cleanupFunctions: (() => void)[] = [];
 
-  public destroy(): void {
-    // Run all cleanup functions
-    this.cleanupFunctions.forEach((cleanup) => {
-      try {
-        cleanup();
-      } catch (error) {
-        console.error("Cleanup error:", error);
-      }
-    });
+export async function destroyApp(): Promise<void> {
+  // Run all cleanup functions
+  const cleanupPromises = cleanupFunctions.map(async (cleanup) => {
+    try {
+      await cleanup();
+    } catch (error) {
+      console.error("Cleanup error:", error);
+    }
+  });
 
-    // Remove global flag
-    delete (window as any).__ADVENTURE_TIME_LOADED__;
-  }
+  await Promise.all(cleanupPromises);
+  cleanupFunctions = [];
 
-  public addCleanup(fn: () => void): void {
-    this.cleanupFunctions.push(fn);
-  }
+  // Remove global flag
+  delete (window as any).__ADVENTURE_TIME_LOADED__;
+}
+
+export function addCleanup(fn: () => void): void {
+  cleanupFunctions.push(fn);
 }
 ```
 

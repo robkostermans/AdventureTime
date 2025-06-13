@@ -35,23 +35,38 @@ export * from "./types";
 ### `src/core/app.ts`
 
 ```typescript
-import { FeatureManager } from "../features";
-import { StyleManager } from "../styles";
+import { initFeatures, destroyFeatures } from "../features";
 import type { AppConfig } from "./types";
 
-export class App {
-  private features: FeatureManager;
-  private styles: StyleManager;
+let isInitialized = false;
+let cleanupFunctions: (() => void)[] = [];
 
-  constructor(config: AppConfig) {
-    this.features = new FeatureManager();
-    this.styles = new StyleManager();
+export async function initApp(config: AppConfig): Promise<void> {
+  if (isInitialized) {
+    console.warn("App already initialized");
+    return;
   }
 
-  public init(): void {
-    this.styles.inject();
-    this.features.initialize();
+  try {
+    // Initialize features
+    const featureCleanup = await initFeatures(config);
+    cleanupFunctions.push(featureCleanup);
+
+    isInitialized = true;
+
+    if (config.debug) {
+      console.log("AdventureTime initialized");
+    }
+  } catch (error) {
+    console.error("App initialization failed:", error);
+    throw error;
   }
+}
+
+export async function destroyApp(): Promise<void> {
+  cleanupFunctions.forEach((cleanup) => cleanup());
+  cleanupFunctions = [];
+  isInitialized = false;
 }
 ```
 
@@ -74,23 +89,34 @@ features/
 
 ```typescript
 // Feature aggregation
-export { FeatureA } from "./feature-a";
-export { FeatureB } from "./feature-b";
+export { initFeatureA, destroyFeatureA } from "./feature-a";
+export { initFeatureB, destroyFeatureB } from "./feature-b";
+import type { AppConfig } from "../core/types";
 
-// Feature manager
-export class FeatureManager {
-  private features: Map<string, any> = new Map();
+// Feature management functions
+export async function initFeatures(config: AppConfig): Promise<() => void> {
+  const cleanupFunctions: (() => void)[] = [];
 
-  public register(name: string, feature: any): void {
-    this.features.set(name, feature);
-  }
+  try {
+    // Initialize features based on config
+    if (config.features.featureA) {
+      await initFeatureA({ enabled: true, debug: config.debug });
+      cleanupFunctions.push(destroyFeatureA);
+    }
 
-  public initialize(): void {
-    this.features.forEach((feature) => {
-      if (feature.init) {
-        feature.init();
-      }
-    });
+    if (config.features.featureB) {
+      await initFeatureB({ enabled: true, debug: config.debug });
+      cleanupFunctions.push(destroyFeatureB);
+    }
+
+    // Return cleanup function
+    return () => {
+      cleanupFunctions.forEach((cleanup) => cleanup());
+    };
+  } catch (error) {
+    // Cleanup any partially initialized features
+    cleanupFunctions.forEach((cleanup) => cleanup());
+    throw error;
   }
 }
 ```
@@ -100,69 +126,121 @@ export class FeatureManager {
 #### `src/features/feature-a/index.ts`
 
 ```typescript
-export { FeatureA } from "./feature-a";
-export type { FeatureAConfig, FeatureAState } from "./types";
+export { initFeatureA, destroyFeatureA, executeFeatureA } from "./feature-a";
+export type { FeatureAConfig } from "./types";
 ```
 
 #### `src/features/feature-a/feature-a.ts`
 
 ```typescript
-import type { FeatureAConfig, FeatureAState } from "./types";
+import type { FeatureAConfig } from "./types";
 
-export class FeatureA {
-  private config: FeatureAConfig;
-  private state: FeatureAState;
+let isInitialized = false;
+let config: FeatureAConfig;
+let cleanupFunctions: (() => void)[] = [];
 
-  constructor(config: FeatureAConfig) {
-    this.config = config;
-    this.state = { initialized: false };
+export async function initFeatureA(
+  featureConfig: FeatureAConfig
+): Promise<void> {
+  if (isInitialized) {
+    console.warn("FeatureA already initialized");
+    return;
   }
 
-  public init(): void {
+  config = { enabled: true, debug: false, ...featureConfig };
+
+  if (!config.enabled) {
+    return;
+  }
+
+  try {
     // Feature initialization logic
-    this.state.initialized = true;
-  }
+    setupEventListeners();
+    isInitialized = true;
 
-  public execute(): void {
-    if (!this.state.initialized) {
-      throw new Error("FeatureA not initialized");
+    if (config.debug) {
+      console.log("FeatureA initialized");
     }
-    // Feature execution logic
+  } catch (error) {
+    console.error("FeatureA initialization failed:", error);
+    throw error;
   }
+}
+
+export function destroyFeatureA(): void {
+  cleanupFunctions.forEach((cleanup) => cleanup());
+  cleanupFunctions = [];
+  isInitialized = false;
+}
+
+export function executeFeatureA(): void {
+  if (!isInitialized) {
+    throw new Error("FeatureA not initialized");
+  }
+  // Feature execution logic
+  console.log("FeatureA executing...");
+}
+
+function setupEventListeners(): void {
+  const handleClick = (event: Event) => {
+    console.log("FeatureA handling click:", event);
+  };
+
+  document.addEventListener("click", handleClick);
+  cleanupFunctions.push(() => {
+    document.removeEventListener("click", handleClick);
+  });
 }
 ```
 
 ## Style Module System
 
-### `src/styles/index.ts`
+### CSS Modules Pattern
 
-```typescript
-export { StyleManager } from "./style-manager";
-export { baseStyles } from "./base";
-export { componentStyles } from "./components";
+```css
+/* src/styles/base.module.css */
+.container {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  z-index: 999999;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.hidden {
+  display: none !important;
+}
 ```
 
-### CSS-in-JS Pattern
+```css
+/* src/styles/components.module.css */
+.button {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.button:hover {
+  background: #0056b3;
+}
+```
+
+### Using CSS Modules in TypeScript
 
 ```typescript
-// src/styles/base.ts
-export const baseStyles = `
-  .adventure-time-container {
-    position: fixed;
-    top: 10px;
-    right: 10px;
-    z-index: 999999;
-  }
-`;
+// Import CSS modules
+import styles from "./styles/base.module.css";
+import componentStyles from "./styles/components.module.css";
 
-// Style injection
-export class StyleManager {
-  public inject(): void {
-    const style = document.createElement("style");
-    style.textContent = baseStyles + componentStyles;
-    document.head.appendChild(style);
-  }
-}
+// Use scoped class names
+const element = document.createElement("div");
+element.className = styles.container;
+
+const button = document.createElement("button");
+button.className = componentStyles.button;
 ```
 
 ## Import Conventions
@@ -171,16 +249,15 @@ export class StyleManager {
 
 ```typescript
 // Main entry point imports
-import { App } from "./core";
-import { FeatureA, FeatureB } from "./features";
-import { StyleManager } from "./styles";
+import { initApp } from "./core";
+import { initFeatureA, initFeatureB } from "./features";
 ```
 
 ### Relative Imports (within modules)
 
 ```typescript
 // Within feature modules
-import { FeatureAConfig } from "./types";
+import type { FeatureAConfig } from "./types";
 import { helperFunction } from "./utils";
 ```
 
@@ -189,7 +266,7 @@ import { helperFunction } from "./utils";
 ```typescript
 // Import only types
 import type { AppConfig } from "./core/types";
-import type { FeatureAState } from "./features/feature-a/types";
+import type { FeatureAConfig } from "./features/feature-a/types";
 ```
 
 ## Module Registration Pattern
@@ -198,11 +275,18 @@ import type { FeatureAState } from "./features/feature-a/types";
 
 ```typescript
 // In main.ts
-import { App } from "./core";
-import { FeatureA, FeatureB } from "./features";
+import { initApp } from "./core";
 
-const app = new App({
-  features: [new FeatureA({ enabled: true }), new FeatureB({ enabled: false })],
+await initApp({
+  debug: false,
+  features: {
+    featureA: true,
+    featureB: false,
+  },
+  ui: {
+    theme: "default",
+    position: "top-right",
+  },
 });
 ```
 
@@ -211,24 +295,23 @@ const app = new App({
 ### Export Patterns for Tree Shaking
 
 ```typescript
-// Good - Named exports
-export { FeatureA } from "./feature-a";
-export { FeatureB } from "./feature-b";
+// Good - Named function exports
+export { initFeatureA, destroyFeatureA } from "./feature-a";
+export { initFeatureB, destroyFeatureB } from "./feature-b";
 
 // Avoid - Default exports with objects
 export default {
-  FeatureA,
-  FeatureB,
+  initFeatureA,
+  initFeatureB,
 };
 ```
 
-### Conditional Imports
+### Simple Feature Initialization
 
 ```typescript
-// Dynamic feature loading based on config
+// Direct feature initialization
 if (config.features.featureA) {
-  const { FeatureA } = await import("./features/feature-a");
-  // Use FeatureA
+  await initFeatureA({ enabled: true });
 }
 ```
 
@@ -248,6 +331,6 @@ if (config.features.featureA) {
 
 ### Style Module Responsibilities
 
-- CSS generation and injection
-- Theme management
-- Component styling
+- CSS modules for scoped styling
+- Component-specific styles
+- Theme variables and design tokens
