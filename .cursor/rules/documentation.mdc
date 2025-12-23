@@ -1,0 +1,61 @@
+---
+description: Documentation requirements for AdventureTime features
+globs:
+  - "src/**/*.ts"
+  - "specs/**/*.md"
+alwaysApply: true
+---
+
+# AdventureTime Documentation Rules
+
+## Feature Documentation Requirement
+
+When implementing any new feature or modifying existing functionality in AdventureTime:
+
+1. **Always update the specs** - Every feature change must be documented in the appropriate `specs/*.md` file
+2. **Create new spec files when needed** - If a feature doesn't fit existing spec documents, create a new `specs/<feature-name>.md` file
+3. **Update the index** - If creating a new spec file, add it to `specs/index.md` in the Architecture Specifications table
+
+## Spec File Structure
+
+Each spec document should include:
+- Clear description of the feature
+- Configuration options (if any)
+- Technical implementation details
+- Visual diagrams where helpful (ASCII art)
+- Code examples showing usage
+
+## Existing Spec Files
+
+| File | Purpose |
+|------|---------|
+| `app-concept.md` | Core game concept, mechanics, avatar, world system |
+| `project-structure.md` | File and folder organization |
+| `build-system.md` | TypeScript compilation and Vite bundling |
+| `module-system.md` | Feature organization and imports |
+| `entry-point.md` | Main initialization and IIFE setup |
+| `feature-architecture.md` | Individual feature structure patterns |
+| `bookmarklet-integration.md` | Bookmarklet-specific considerations |
+
+## When to Update vs Create New
+
+**Update existing spec** when:
+- Adding to core game mechanics → `app-concept.md`
+- Changing build configuration → `build-system.md`
+- Modifying feature patterns → `feature-architecture.md`
+
+**Create new spec** when:
+- Adding a major standalone system (e.g., collision detection, inventory)
+- The feature is complex enough to warrant its own document
+- It doesn't logically fit in existing specs
+
+## Example Workflow
+
+1. Receive feature request
+2. Identify which spec file(s) need updating
+3. Implement the feature in code
+4. Document the feature in specs with:
+   - What it does
+   - How to configure it
+   - Technical details
+5. Test the implementation

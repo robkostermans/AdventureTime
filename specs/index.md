@@ -2,6 +2,10 @@
 
 This document provides an overview of the specifications for a modular vanilla TypeScript project that compiles into a single optimized JavaScript file for bookmarklet usage.
 
+## App Concept
+
+For the core game concept, mechanics, and world system, see the [App Concept](./app-concept.md) document.
+
 ## Project Overview
 
 A vanilla TypeScript application with modular architecture that:
@@ -10,12 +14,15 @@ A vanilla TypeScript application with modular architecture that:
 - Organizes code by features in separate files/folders
 - Compiles to a single minified JavaScript file
 - Self-executes on script load (IIFE pattern)
-- Can be used as a bookmarklet
+- Can be used as a bookmarklet (nice to have)
 
 ## Architecture Specifications
 
 | Component               | Description                                    | Specification                                           |
 | ----------------------- | ---------------------------------------------- | ------------------------------------------------------- |
+| App Concept             | Core game idea, mechanics, and world system    | [App Concept](./app-concept.md)                         |
+| Interaction Layer       | DOM element abstraction into game artifacts    | [Interaction Layer](./interaction-layer.md)             |
+| Inventory System        | Artifact collection and inventory management   | [Inventory System](./inventory-system.md)               |
 | Project Structure       | Overall file and folder organization           | [Project Structure](./project-structure.md)             |
 | Build System            | TypeScript compilation and bundling setup      | [Build System](./build-system.md)                       |
 | Module System           | How features are organized and imported        | [Module System](./module-system.md)                     |
