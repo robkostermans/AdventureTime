@@ -22,14 +22,37 @@ Layer 0 (Bottom):  Extended Background
 
 The Interaction Layer scans the DOM and converts elements into artifacts based on their type:
 
-| Element Type | Artifact | Icon | Description |
-|-------------|----------|------|-------------|
-| `<a href>` | Portal | 🌀 | Links become swirling portals |
-| `<p>` | Paper | 📜 | Paragraphs become scrolls of text |
-| `<h1>`-`<h6>` | Direction | 🪧 | Headers become directional signs |
-| `<img>` | Diamond | 💎 | Images become precious gems |
-| `.tag` | Silver Coin | 🪙 | Tag elements become silver coins |
-| `.card` | Gold Coin | 🥇 | Card components become gold coins |
+| Element Type                                                                                                                         | Artifact    | Icon | Description                             |
+| ------------------------------------------------------------------------------------------------------------------------------------ | ----------- | ---- | --------------------------------------- |
+| `<a href>`                                                                                                                           | Portal      | 🌀   | Links become swirling portals           |
+| `<p>`, `<li>`, `<blockquote>`, `<figcaption>`, `<dd>`, `<dt>`, `<label>`, `<legend>`, `<summary>`, `<td>`, `<th>`, `<div>`, `<span>` | Paper       | 📜   | Text-containing elements become scrolls |
+| `<h1>`-`<h6>`                                                                                                                        | Direction   | 🪧   | Headers become directional signs        |
+| `<img>`                                                                                                                              | Diamond     | 💎   | Images become precious gems             |
+| `.tag`                                                                                                                               | Silver Coin | 🪙   | Tag elements become silver coins        |
+| `.card`                                                                                                                              | Gold Coin   | 🥇   | Card components become gold coins       |
+
+**Note**: Paper artifacts are only created for elements that contain actual text content (not empty elements).
+
+### Special Handling for `<div>` and `<span>`
+
+Since `div` and `span` are generic container elements, special logic determines if they qualify as "simple text elements":
+
+1. **No block-level children** - Must not contain divs, sections, articles, headers, lists, etc.
+2. **Has direct text** - Must have text nodes directly in the element (not just in nested children)
+3. **Size limit** - Must not exceed 500x500 pixels (prevents treating large layout sections as text)
+4. **Inline children only** - If no direct text, may only contain inline elements like `<strong>`, `<em>`, `<a>`, etc.
+
+```
+✅ Simple text div (becomes Paper):
+<div>Hello, this is some text!</div>
+<div><strong>Bold</strong> and <em>italic</em> text</div>
+
+❌ Container div (ignored):
+<div>
+  <p>Paragraph inside</p>
+  <div>Nested div</div>
+</div>
+```
 
 ---
 
@@ -61,6 +84,7 @@ For each artifact type (by priority):
 ```
 
 **Example**: A `.card` containing an `<img>` and `<p>`:
+
 - Card is processed first (priority 100) → Creates Gold Coin
 - Image inside card is skipped (ancestor processed)
 - Paragraph inside card is skipped (ancestor processed)
@@ -138,6 +162,7 @@ const ARTIFACT_SELECTORS = {
 ### Custom Elements
 
 To add new artifact types for custom elements:
+
 1. Add the type to `ArtifactType`
 2. Set priority in `ARTIFACT_PRIORITY`
 3. Define icon in `ARTIFACT_ICONS`
@@ -160,11 +185,11 @@ All artifacts scale up on hover:
 
 ### Animations
 
-| Artifact | Animation |
-|----------|-----------|
-| Portal | Continuous 360° rotation |
-| Gold | Pulsing golden glow |
-| Diamond | Sparkling effect |
+| Artifact | Animation                |
+| -------- | ------------------------ |
+| Portal   | Continuous 360° rotation |
+| Gold     | Pulsing golden glow      |
+| Diamond  | Sparkling effect         |
 
 ---
 
@@ -220,4 +245,3 @@ These features are planned but not yet implemented:
 - **Dynamic Updates**: MutationObserver for automatic rescanning
 - **Custom Icons**: Support for image-based icons instead of emoji
 - **Artifact Animations**: Entry/exit animations when scrolling into view
-

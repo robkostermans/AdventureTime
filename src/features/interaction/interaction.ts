@@ -2,13 +2,24 @@
 
 import { createElement, injectStyles, generateId } from "../../core/utils";
 import type { CleanupFunction } from "../../core/types";
-import type { InteractionFeatureConfig, Artifact, ArtifactType } from "./types";
-import { ARTIFACT_PRIORITY, ARTIFACT_ICONS, ARTIFACT_SELECTORS } from "./types";
+import type {
+  InteractionFeatureConfig,
+  Artifact,
+  ArtifactType,
+  GhostMarker,
+} from "./types";
+import {
+  ARTIFACT_PRIORITY,
+  ARTIFACT_ICONS,
+  ARTIFACT_SELECTORS,
+  BLOCK_LEVEL_TAGS,
+} from "./types";
 
 let isInitialized = false;
 let config: InteractionFeatureConfig;
 let interactionLayer: HTMLDivElement | null = null;
 let artifacts: Artifact[] = [];
+let ghostMarkers: GhostMarker[] = [];
 let processedElements: Set<HTMLElement> = new Set();
 let cleanupFunctions: CleanupFunction[] = [];
 
@@ -66,10 +77,16 @@ export function destroyInteraction(): void {
     artifact.iconElement.remove();
   });
 
+  // Remove all ghost markers
+  ghostMarkers.forEach((marker) => {
+    marker.iconElement.remove();
+  });
+
   cleanupFunctions.forEach((cleanup) => cleanup());
   cleanupFunctions = [];
   interactionLayer = null;
   artifacts = [];
+  ghostMarkers = [];
   processedElements = new Set();
   isInitialized = false;
 }
@@ -84,18 +101,72 @@ export function getArtifacts(): Artifact[] {
 
 /**
  * Removes an artifact by ID (used when collecting)
+ * Returns the artifact's position for ghost marker placement
  */
-export function removeArtifact(artifactId: string): void {
+export function removeArtifact(
+  artifactId: string
+): { x: number; y: number } | null {
   const index = artifacts.findIndex((a) => a.id === artifactId);
   if (index !== -1) {
     const artifact = artifacts[index];
+    const position = { ...artifact.position };
     artifact.iconElement.remove();
     artifacts.splice(index, 1);
 
     if (config.debug) {
       console.log("Artifact removed:", artifactId);
     }
+
+    return position;
   }
+  return null;
+}
+
+/**
+ * Creates a ghost marker (faint star) at the specified position
+ * Used to mark where artifacts were collected
+ * Returns the ghost marker ID for cooldown tracking
+ */
+export function createGhostMarker(
+  position: { x: number; y: number },
+  originalType: ArtifactType,
+  originalContent: string,
+  originalHref?: string
+): string | null {
+  if (!interactionLayer) return null;
+
+  const id = generateId("ghost");
+  const ghost = document.createElement("div") as HTMLDivElement;
+  ghost.className = "at-ghost-marker";
+  ghost.setAttribute("data-ghost-id", id);
+  ghost.textContent = "⭐";
+  ghost.style.left = `${position.x}px`;
+  ghost.style.top = `${position.y}px`;
+
+  const marker: GhostMarker = {
+    id,
+    originalType,
+    originalContent,
+    originalHref,
+    iconElement: ghost,
+    position,
+  };
+
+  ghostMarkers.push(marker);
+  interactionLayer.appendChild(ghost);
+
+  if (config.debug) {
+    console.log("Ghost marker created:", marker);
+  }
+
+  return id;
+}
+
+/**
+ * Returns all ghost markers
+ */
+export function getGhostMarkers(): GhostMarker[] {
+  return [...ghostMarkers];
 }
 
 /**
@@ -185,6 +256,22 @@ function scanForArtifacts(worldContainer: HTMLElement): void {
         return;
       }
 
+      // For paper artifacts, apply special filtering
+      if (artifactType === "paper") {
+        // Skip elements without meaningful text content
+        if (!hasTextContent(element)) {
+          return;
+        }
+        // For divs and spans, only include if they're "simple text" containers
+        const tagName = element.tagName.toLowerCase();
+        if (
+          (tagName === "div" || tagName === "span") &&
+          !isSimpleTextElement(element)
+        ) {
+          return;
+        }
+      }
+
       // Create artifact for this element
       const artifact = createArtifact(element, artifactType);
       if (artifact) {
@@ -223,6 +310,79 @@ function markElementAndDescendants(element: HTMLElement): void {
   descendants.forEach((descendant) => {
     processedElements.add(descendant);
   });
+}
+
+/**
+ * Checks if an element has meaningful text content (not just whitespace)
+ */
+function hasTextContent(element: HTMLElement): boolean {
+  // Get direct text content (not from child elements that might be other artifacts)
+  const text = element.textContent?.trim() || "";
+  // Require at least some characters of text
+  return text.length > 0;
+}
+
+/**
+ * Checks if a div/span is a "simple text element" - meaning it primarily contains
+ * text rather than being a layout container.
+ *
+ * A simple text element:
+ * - Has direct text nodes (not just text in nested elements)
+ * - Has no block-level children (no nested divs, sections, etc.)
+ * - Is not too large (prevents treating entire page sections as text)
+ */
+function isSimpleTextElement(element: HTMLElement): boolean {
+  // Check for block-level children - if present, this is a container, not a text element
+  const children = Array.from(element.children);
+  for (const child of children) {
+    const childTag = child.tagName.toLowerCase();
+    if (BLOCK_LEVEL_TAGS.includes(childTag)) {
+      return false;
+    }
+  }
+
+  // Check if element has direct text nodes (not just text in children)
+  const hasDirectText = Array.from(element.childNodes).some(
+    (node) => node.nodeType === Node.TEXT_NODE && node.textContent?.trim()
+  );
+
+  if (!hasDirectText) {
+    // If no direct text, check if it only contains inline elements with text
+    // (like <span>text</span> or <strong>text</strong>)
+    const hasOnlyInlineChildren = children.every((child) => {
+      const tag = child.tagName.toLowerCase();
+      const inlineTags = [
+        "span",
+        "a",
+        "strong",
+        "em",
+        "b",
+        "i",
+        "u",
+        "small",
+        "mark",
+        "sub",
+        "sup",
+        "code",
+        "kbd",
+        "br",
+      ];
+      return inlineTags.includes(tag);
+    });
+
+    if (!hasOnlyInlineChildren) {
+      return false;
+    }
+  }
+
+  // Size check - don't treat very large elements as simple text
+  const rect = element.getBoundingClientRect();
+  const maxSize = 500; // Max width/height for a "simple" text element
+  if (rect.width > maxSize && rect.height > maxSize) {
+    return false;
+  }
+
+  return true;
 }
 
 /**
@@ -362,7 +522,7 @@ function getInteractionStyles(backgroundColor: string): string {
     }
 
     .at-artifact-direction {
-      font-size: 26px;
+      font-size: 36px;
     }
 
     @keyframes at-portal-pulse {
@@ -378,6 +538,29 @@ function getInteractionStyles(backgroundColor: string): string {
     @keyframes at-diamond-sparkle {
       0%, 100% { filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3)); }
       50% { filter: drop-shadow(0 2px 12px rgba(100, 200, 255, 0.8)); }
+    }
+
+    /* Ghost marker - faint star left behind after collecting an artifact */
+    .at-ghost-marker {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      font-size: 16px;
+      opacity: 0.3;
+      pointer-events: none;
+      z-index: 9;
+      filter: grayscale(0.5) drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+      animation: at-ghost-fade-in 0.5s ease-out;
+    }
+
+    @keyframes at-ghost-fade-in {
+      0% { 
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(1.5);
+      }
+      100% { 
+        opacity: 0.3;
+        transform: translate(-50%, -50%) scale(1);
+      }
     }
   `;
 }

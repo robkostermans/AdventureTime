@@ -8,6 +8,11 @@ export interface AppConfig {
   movement: MovementConfig;
   interaction: InteractionConfig;
   inventory: InventoryConfig;
+  design: DesignConfig;
+}
+
+export interface DesignConfig {
+  enabled: boolean; // Whether design layer is enabled
 }
 
 export interface ViewportConfig {
@@ -29,7 +34,9 @@ export interface WorldConfig {
 }
 
 export interface MovementConfig {
-  speed: number; // Base movement speed in pixels per frame
+  speed: number; // Maximum movement speed in pixels per frame
+  acceleration: number; // How quickly to reach max speed (0-1, higher = faster)
+  deceleration: number; // How quickly to slow down when stopping (0-1, higher = faster)
 }
 
 export interface InteractionConfig {

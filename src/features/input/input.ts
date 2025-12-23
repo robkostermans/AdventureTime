@@ -21,6 +21,10 @@ let avatarDirectionCallback: AvatarDirectionCallback | null = null;
 let movementStopCallback: MovementStopCallback | null = null;
 let cleanupFunctions: CleanupFunction[] = [];
 
+// Velocity state for smooth movement
+let velocity: Vector2D = { x: 0, y: 0 };
+let targetDirection: Vector2D = { x: 0, y: 0 };
+
 export function initInput(featureConfig: InputFeatureConfig): void {
   if (isInitialized) {
     console.warn("Input already initialized");
@@ -62,6 +66,8 @@ export function destroyInput(): void {
   movementCallback = null;
   avatarDirectionCallback = null;
   movementStopCallback = null;
+  velocity = { x: 0, y: 0 };
+  targetDirection = { x: 0, y: 0 };
   isInitialized = false;
 }
 
@@ -95,8 +101,10 @@ export function getSpeed(): number {
 export function pauseInput(): void {
   if (!isPaused) {
     isPaused = true;
-    // Reset input state and trigger stop callback
+    // Reset input state, velocity, and trigger stop callback
     inputState = { up: false, down: false, left: false, right: false };
+    velocity = { x: 0, y: 0 };
+    targetDirection = { x: 0, y: 0 };
     if (previouslyMoving && movementStopCallback) {
       movementStopCallback();
     }
@@ -205,7 +213,7 @@ function startGameLoop(): void {
 }
 
 function processInput(): void {
-  // Calculate raw direction vector
+  // Calculate raw direction vector from input
   let dirX = 0;
   let dirY = 0;
 
@@ -214,10 +222,55 @@ function processInput(): void {
   if (inputState.up) dirY -= 1;
   if (inputState.down) dirY += 1;
 
-  const isMoving = dirX !== 0 || dirY !== 0;
+  const hasInput = dirX !== 0 || dirY !== 0;
 
-  // Handle movement stop
+  // Normalize input direction for diagonal movement compensation
+  if (hasInput) {
+    targetDirection = normalizeVector({ x: dirX, y: dirY });
+  } else {
+    targetDirection = { x: 0, y: 0 };
+  }
+
+  // Calculate target velocity
+  const targetVelocity: Vector2D = {
+    x: targetDirection.x * config.speed,
+    y: targetDirection.y * config.speed,
+  };
+
+  // Apply acceleration or deceleration with easing
+  if (hasInput) {
+    // Accelerate towards target velocity
+    velocity.x = lerp(velocity.x, targetVelocity.x, config.acceleration);
+    velocity.y = lerp(velocity.y, targetVelocity.y, config.acceleration);
+  } else {
+    // Decelerate towards zero
+    velocity.x = lerp(velocity.x, 0, config.deceleration);
+    velocity.y = lerp(velocity.y, 0, config.deceleration);
+  }
+
+  // Check if we're effectively moving (velocity above threshold)
+  const velocityMagnitude = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
+  const isMoving = velocityMagnitude > 0.01;
+
+  // Calculate velocity factor (0-1) for avatar offset scaling
+  const velocityFactor = Math.min(velocityMagnitude / config.speed, 1);
+
+  // Update avatar with current velocity - this syncs avatar offset with world deceleration
+  if (avatarDirectionCallback) {
+    if (velocityMagnitude > 0.01) {
+      // Still moving - pass normalized direction and velocity factor
+      const normalizedVelocity = normalizeVector(velocity);
+      avatarDirectionCallback(normalizedVelocity, velocityFactor);
+    } else if (previouslyMoving) {
+      // Just stopped - pass zero velocity factor to trigger final return to center
+      avatarDirectionCallback({ x: 0, y: 0 }, 0);
+    }
+  }
+
+  // Handle movement state changes
   if (!isMoving && previouslyMoving) {
+    // Fully stopped - reset velocity to exactly zero
+    velocity = { x: 0, y: 0 };
     if (movementStopCallback) {
       movementStopCallback();
     }
@@ -225,27 +278,26 @@ function processInput(): void {
     return;
   }
 
-  // Skip if no movement
+  // Skip if not moving
   if (!isMoving) {
     return;
   }
 
   previouslyMoving = true;
 
-  // Normalize for diagonal movement compensation
-  const direction = normalizeVector({ x: dirX, y: dirY });
-
-  // Update avatar direction (non-inverted, for rotation/offset)
-  if (avatarDirectionCallback) {
-    avatarDirectionCallback(direction);
-  }
-
-  // Apply speed and INVERT direction for world movement (world moves opposite to input)
+  // Apply INVERTED velocity for world movement (world moves opposite to avatar)
   if (movementCallback) {
     const movement: Vector2D = {
-      x: -direction.x * config.speed,
-      y: -direction.y * config.speed,
+      x: -velocity.x,
+      y: -velocity.y,
     };
     movementCallback(movement);
   }
+}
+
+/**
+ * Linear interpolation helper for smooth transitions
+ */
+function lerp(start: number, end: number, factor: number): number {
+  return start + (end - start) * factor;
 }

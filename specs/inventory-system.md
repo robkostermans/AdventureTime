@@ -81,7 +81,7 @@ When the avatar collides with an artifact, a popover appears showing:
 |--------------|----------------|----------|
 | Portal | Travel | Opens link (future feature) |
 | Paper | Take | Collects to inventory |
-| Direction | Take | Collects to inventory |
+| Direction | — | No action, view only (Leave button only) |
 | Diamond | Take | Collects to inventory |
 | Silver | Take | Collects to inventory |
 | Gold | Take | Collects to inventory |
@@ -92,6 +92,50 @@ When the avatar collides with an artifact, a popover appears showing:
 - **Leave**: Dismisses popover, artifact remains
 - **Take/Travel**: Performs action (collect or travel)
 - **Escape key**: Dismisses popover
+
+### Ghost Markers
+
+When an artifact is collected, a faint star (⭐) is left behind at its original position. This allows players to:
+- Remember where they found items
+- Navigate back to interesting locations
+- Track their exploration progress
+- Review the original content of collected items
+
+```
+Before collection:     After collection:
+     📜                     ⭐
+  (Paper artifact)     (Ghost marker)
+```
+
+Ghost markers are:
+- **Interactive** - Colliding with a ghost marker shows a "Memory" popover
+- Semi-transparent (30% opacity)
+- Slightly desaturated
+- Permanent (remain until page reload)
+
+#### Ghost Marker Popover
+
+When the avatar collides with a ghost marker, a special popover appears:
+
+```
+┌─────────────────────────────────┐
+│ ⭐ Memory of Paper           ✕ │
+├─────────────────────────────────┤
+│  ┌─────────────────────────┐   │
+│  │ 📜 You collected this   │   │
+│  │    item here            │   │
+│  └─────────────────────────┘   │
+│                                 │
+│  [Original element content]    │
+│                                 │
+├─────────────────────────────────┤
+│        [ Continue ]             │
+└─────────────────────────────────┘
+```
+
+- Shows the original artifact type and content
+- Only has a "Continue" button (no "Take" action)
+- Helps players remember what they collected at each location
 
 ---
 

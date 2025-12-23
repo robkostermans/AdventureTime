@@ -8,12 +8,15 @@ export {
   removeArtifact,
   rescanArtifacts,
   updateArtifactViewportStates,
+  createGhostMarker,
+  getGhostMarkers,
 } from "./interaction";
 
 export type {
   InteractionFeatureConfig,
   Artifact,
   ArtifactType,
+  GhostMarker,
 } from "./types";
 
 export {

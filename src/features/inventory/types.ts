@@ -53,10 +53,10 @@ export const ARTIFACT_TYPE_LABELS: Record<ArtifactType, string> = {
 /**
  * Action labels for artifact types
  */
-export const ARTIFACT_ACTION_LABELS: Record<ArtifactType, string> = {
+export const ARTIFACT_ACTION_LABELS: Record<ArtifactType, string | null> = {
   portal: "Travel",
   paper: "Take",
-  direction: "Take",
+  direction: null, // Direction artifacts have no action, only "Leave"
   diamond: "Take",
   silver: "Take",
   gold: "Take",

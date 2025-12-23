@@ -68,14 +68,15 @@ The avatar provides visual feedback during movement through **rotation** and **o
 - While moving, avatar shifts slightly toward movement direction
 - Creates a "leaning into movement" effect
 - Maximum offset is configurable (default: 8 pixels)
-- When movement stops, avatar smoothly returns to center
-- Uses ease-out interpolation for natural deceleration feel
+- **Offset scales with velocity**: The avatar offset is proportional to current speed
+- When decelerating, avatar smoothly returns to center **in sync with world deceleration**
+- Uses the same velocity factor (0-1) as world movement for perfectly synchronized animations
 
 #### Configuration
 
 ```typescript
 avatar: {
-  maxOffset: 8,           // Max pixels from center while moving
+  maxOffset: 32,          // Max pixels from center at full speed
   offsetSmoothing: 0.12,  // Interpolation factor (0-1, lower = smoother)
   rotationEnabled: true,  // Enable/disable rotation
 }
@@ -108,15 +109,71 @@ The smoothing creates a natural feel where:
 | →   | World moves LEFT  | Avatar walks RIGHT         |
 
 **Inverted Direction Logic**: When the player presses an arrow key, the world moves in the **opposite direction**, creating the perception that the avatar is walking in the pressed direction.
-**diagonal direction**: allow for diagonal movement as well and support compensated speed when moving in angles
-**speed**: allow for speed control via a specific speed var.
+**Diagonal Direction**: Allow for diagonal movement as well and support compensated speed when moving in angles.
+**Speed**: Allow for speed control via a specific speed var.
+
+### Smooth Movement with Acceleration
+
+Movement uses a **velocity-based system** with acceleration and deceleration for a smooth, natural feel:
+
+#### Velocity System
+
+- Movement is driven by **velocity** rather than direct position changes
+- Velocity smoothly interpolates toward target speed when keys are pressed
+- Velocity smoothly decelerates toward zero when keys are released
+- Uses linear interpolation (lerp) for smooth transitions
+
+#### Configuration
+
+```typescript
+movement: {
+  speed: 8,           // Maximum speed in pixels per frame
+  acceleration: 0.15, // How quickly to reach max speed (0-1, higher = faster)
+  deceleration: 0.12, // How quickly to slow down (0-1, higher = faster)
+}
+```
+
+#### Movement Behavior
+
+```
+Starting Movement:          Stopping Movement:
+    0 ──────→ maxSpeed          maxSpeed ──────→ 0
+       accelerate                    decelerate
+       (gradual)                     (gradual)
+```
+
+**Acceleration** (0.15 default): Controls how quickly the avatar reaches full speed. Higher values = snappier response, lower values = more gradual buildup.
+
+**Deceleration** (0.12 default): Controls how quickly the avatar comes to a stop. Lower values create a "gliding" effect where the avatar continues moving briefly after releasing keys.
+
+#### Technical Implementation
+
+```typescript
+// Each frame:
+if (hasInput) {
+  // Accelerate toward target velocity
+  velocity = lerp(velocity, targetVelocity, acceleration);
+} else {
+  // Decelerate toward zero
+  velocity = lerp(velocity, 0, deceleration);
+}
+
+// Apply velocity to world movement
+worldPosition += velocity;
+```
+
+The velocity threshold (0.01) determines when movement is considered "stopped" to avoid infinite micro-movements.
 
 ### Movement Implementation
 
 ```
 Player Input: Arrow Key →
     ↓
-Invert Direction
+Calculate Target Direction
+    ↓
+Apply Acceleration/Deceleration to Velocity
+    ↓
+Invert Velocity Direction
     ↓
 Translate World Container
     ↓

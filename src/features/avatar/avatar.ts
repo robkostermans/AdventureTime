@@ -28,7 +28,7 @@ export function initAvatar(featureConfig: AvatarFeatureConfig): void {
   config = {
     enabled: true,
     debug: false,
-    maxOffset: 8,
+    maxOffset: 32,
     offsetSmoothing: 0.15,
     rotationEnabled: true,
     ...featureConfig,
@@ -97,17 +97,20 @@ export function getAvatarElement(): HTMLDivElement | null {
  * Updates the avatar's movement direction for rotation and offset feedback.
  * Called by the input system when movement occurs.
  * @param direction - The normalized direction vector (not inverted, represents avatar's perceived direction)
+ * @param velocityFactor - 0-1 representing current speed as fraction of max speed
  */
-export function updateAvatarMovement(direction: Vector2D): void {
+export function updateAvatarMovement(direction: Vector2D, velocityFactor: number = 1): void {
   if (!isInitialized) return;
 
-  // Calculate target offset (avatar moves slightly in movement direction)
+  // Calculate target offset scaled by velocity factor
+  // This syncs avatar offset with world acceleration/deceleration
   avatarState.targetOffset = {
-    x: direction.x * config.maxOffset,
-    y: direction.y * config.maxOffset,
+    x: direction.x * config.maxOffset * velocityFactor,
+    y: direction.y * config.maxOffset * velocityFactor,
   };
 
   // Calculate target rotation based on movement direction
+  // Only update rotation when actually moving (not during deceleration to zero)
   if (config.rotationEnabled && (direction.x !== 0 || direction.y !== 0)) {
     // Calculate angle in degrees from direction vector
     // 0° = up, 90° = right, 180° = down, 270° = left

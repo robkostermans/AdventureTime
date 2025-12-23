@@ -30,7 +30,7 @@ import type { AppConfig } from "./core/types";
       color: "#4CAF50", // Green avatar
       shape: "circle", // Circle shape
       // Movement feedback settings
-      maxOffset: 8, // Avatar moves up to 8px from center while moving
+      maxOffset: 32, // Avatar moves up to 32px from center at full speed
       offsetSmoothing: 0.12, // Smooth return to center (lower = smoother)
       rotationEnabled: true, // Avatar rotates to face movement direction
     },
@@ -38,7 +38,9 @@ import type { AppConfig } from "./core/types";
       backgroundColor: "#1a1a2e", // Dark background for extended borders
     },
     movement: {
-      speed: 5, // 5 pixels per frame
+      speed: 5, // Maximum speed in pixels per frame
+      acceleration: 0.15, // How quickly to reach max speed (0-1)
+      deceleration: 0.12, // How quickly to slow down (0-1)
     },
     interaction: {
       enabled: true, // Enable interaction layer
@@ -47,6 +49,9 @@ import type { AppConfig } from "./core/types";
     inventory: {
       enabled: true, // Enable inventory system
       collisionRadius: 10, // Extra collision radius around avatar
+    },
+    design: {
+      enabled: true, // Enable design layer with decorative blobs
     },
   };
 

@@ -4,6 +4,8 @@ import { createElement, injectStyles, generateId } from "../../core/utils";
 import type { CleanupFunction } from "../../core/types";
 import type { Artifact } from "../interaction/types";
 import { ARTIFACT_ICONS } from "../interaction/types";
+import type { GhostMarker } from "../interaction/types";
+import { createGhostMarker, getGhostMarkers } from "../interaction";
 import { pauseInput, resumeInput } from "../input";
 import type {
   InventoryFeatureConfig,
@@ -31,12 +33,16 @@ let state: InventoryState = {
 // Collision detection
 let collisionCheckInterval: number | null = null;
 let getArtifactsFunc: (() => Artifact[]) | null = null;
-let removeArtifactFunc: ((id: string) => void) | null = null;
+let removeArtifactFunc:
+  | ((id: string) => { x: number; y: number } | null)
+  | null = null;
 let currentPopoverArtifact: Artifact | null = null;
+let currentPopoverGhostMarker: GhostMarker | null = null;
 let artifactClickHandler: ((e: Event) => void) | null = null;
 
 // Collision cooldown to prevent re-triggering after dismissing popover
 let lastDismissedArtifactId: string | null = null;
+let lastDismissedGhostMarkerId: string | null = null;
 let collisionCooldownUntil: number = 0;
 const COLLISION_COOLDOWN_MS = 500; // 500ms cooldown after dismissing
 
@@ -48,14 +54,14 @@ const POPOVER_ID = "adventure-time-artifact-popover";
 export function initInventory(
   featureConfig: InventoryFeatureConfig,
   getArtifacts: () => Artifact[],
-  removeArtifact: (id: string) => void
+  removeArtifact: (id: string) => { x: number; y: number } | null
 ): void {
   if (isInitialized) {
     console.warn("Inventory already initialized");
     return;
   }
 
-  config = { enabled: true, debug: false, ...featureConfig };
+  config = { debug: false, ...featureConfig };
   getArtifactsFunc = getArtifacts;
   removeArtifactFunc = removeArtifact;
 
@@ -120,7 +126,9 @@ export function destroyInventory(): void {
   getArtifactsFunc = null;
   removeArtifactFunc = null;
   currentPopoverArtifact = null;
+  currentPopoverGhostMarker = null;
   lastDismissedArtifactId = null;
+  lastDismissedGhostMarkerId = null;
   collisionCooldownUntil = 0;
 
   state = {
@@ -176,30 +184,53 @@ export function closeInventory(): void {
 
 function startCollisionDetection(): void {
   const checkCollisions = () => {
-    if (getArtifactsFunc && !currentPopoverArtifact) {
-      // Check if we're still in cooldown period
-      const now = Date.now();
-      if (now < collisionCooldownUntil) {
-        collisionCheckInterval = requestAnimationFrame(checkCollisions);
-        return;
-      }
+    // Skip if popover is already showing
+    if (currentPopoverArtifact || currentPopoverGhostMarker) {
+      collisionCheckInterval = requestAnimationFrame(checkCollisions);
+      return;
+    }
 
+    // Check if we're still in cooldown period
+    const now = Date.now();
+    if (now < collisionCooldownUntil) {
+      collisionCheckInterval = requestAnimationFrame(checkCollisions);
+      return;
+    }
+
+    // Check for artifact collisions first
+    if (getArtifactsFunc) {
       const artifacts = getArtifactsFunc();
       const collidingArtifact = findCollidingArtifact(artifacts);
 
       if (collidingArtifact) {
         // Skip if this is the same artifact we just dismissed and we're still near it
         if (collidingArtifact.id === lastDismissedArtifactId) {
-          // Clear the dismissed artifact ID once we've moved away
-          // (this happens naturally when collision check returns null)
           collisionCheckInterval = requestAnimationFrame(checkCollisions);
           return;
         }
         showArtifactPopover(collidingArtifact);
+        collisionCheckInterval = requestAnimationFrame(checkCollisions);
+        return;
       } else {
-        // No collision - clear the last dismissed artifact ID
+        // No artifact collision - clear the last dismissed artifact ID
         lastDismissedArtifactId = null;
       }
+    }
+
+    // Check for ghost marker collisions
+    const ghostMarkers = getGhostMarkers();
+    const collidingGhost = findCollidingGhostMarker(ghostMarkers);
+
+    if (collidingGhost) {
+      // Skip if this is the same ghost we just dismissed
+      if (collidingGhost.id === lastDismissedGhostMarkerId) {
+        collisionCheckInterval = requestAnimationFrame(checkCollisions);
+        return;
+      }
+      showGhostMarkerPopover(collidingGhost);
+    } else {
+      // No ghost collision - clear the last dismissed ghost ID
+      lastDismissedGhostMarkerId = null;
     }
 
     collisionCheckInterval = requestAnimationFrame(checkCollisions);
@@ -236,6 +267,36 @@ function findCollidingArtifact(artifacts: Artifact[]): Artifact | null {
   return null;
 }
 
+function findCollidingGhostMarker(
+  ghostMarkers: GhostMarker[]
+): GhostMarker | null {
+  // Avatar is always at screen center
+  const screenCenterX = window.innerWidth / 2;
+  const screenCenterY = window.innerHeight / 2;
+
+  const collisionRadius = config.avatarSize / 2 + config.collisionRadius;
+
+  for (const ghost of ghostMarkers) {
+    // Get ghost's screen position (accounting for world transform)
+    const ghostRect = ghost.iconElement.getBoundingClientRect();
+    const ghostCenterX = ghostRect.left + ghostRect.width / 2;
+    const ghostCenterY = ghostRect.top + ghostRect.height / 2;
+
+    // Calculate distance
+    const dx = screenCenterX - ghostCenterX;
+    const dy = screenCenterY - ghostCenterY;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    // Check collision (ghost icon is smaller ~16px, so ~8px radius)
+    const ghostRadius = 10;
+    if (distance < collisionRadius + ghostRadius) {
+      return ghost;
+    }
+  }
+
+  return null;
+}
+
 // ============================================
 // Artifact Popover
 // ============================================
@@ -254,6 +315,8 @@ function showArtifactPopover(artifact: Artifact): void {
   const label = ARTIFACT_TYPE_LABELS[artifact.type];
   const actionLabel = ARTIFACT_ACTION_LABELS[artifact.type];
   const isPortal = artifact.type === "portal";
+  const isDirection = artifact.type === "direction";
+  const hasAction = actionLabel !== null;
 
   popoverElement.innerHTML = `
     <div class="at-popover-header">
@@ -263,34 +326,48 @@ function showArtifactPopover(artifact: Artifact): void {
     </div>
     <div class="at-popover-content">
       <div class="at-popover-preview">${originalContent}</div>
-      ${originalHref ? `<div class="at-popover-link">→ ${originalHref}</div>` : ""}
     </div>
     <div class="at-popover-actions">
-      <button class="at-popover-btn at-popover-btn--primary" tabindex="0" data-action="take">${actionLabel}</button>
-      <button class="at-popover-btn at-popover-btn--secondary" tabindex="0" data-action="leave">Leave</button>
+      ${
+        hasAction
+          ? `<button class="at-popover-btn at-popover-btn--primary" tabindex="0" data-action="take">${actionLabel}</button>`
+          : ""
+      }
+      <button class="at-popover-btn ${
+        hasAction ? "at-popover-btn--secondary" : "at-popover-btn--primary"
+      }" tabindex="0" data-action="leave">Leave</button>
     </div>
   `;
 
   // Add event listeners
-  const closeBtn = popoverElement.querySelector('[data-action="close"]') as HTMLButtonElement;
-  const takeBtn = popoverElement.querySelector('[data-action="take"]') as HTMLButtonElement;
-  const leaveBtn = popoverElement.querySelector('[data-action="leave"]') as HTMLButtonElement;
+  const closeBtn = popoverElement.querySelector(
+    '[data-action="close"]'
+  ) as HTMLButtonElement;
+  const takeBtn = popoverElement.querySelector(
+    '[data-action="take"]'
+  ) as HTMLButtonElement | null;
+  const leaveBtn = popoverElement.querySelector(
+    '[data-action="leave"]'
+  ) as HTMLButtonElement;
 
   closeBtn?.addEventListener("click", () => hideArtifactPopover(true));
   leaveBtn?.addEventListener("click", () => hideArtifactPopover(true));
-  takeBtn?.addEventListener("click", () => {
-    if (isPortal) {
-      // Portal: Travel action (placeholder for now)
-      if (config.debug) {
-        console.log("Travel action triggered for portal:", originalHref);
+
+  if (takeBtn) {
+    takeBtn.addEventListener("click", () => {
+      if (isPortal) {
+        // Portal: Travel action (placeholder for now)
+        if (config.debug) {
+          console.log("Travel action triggered for portal:", originalHref);
+        }
+        // For now, just close the popover - Travel feature will be added later
+        hideArtifactPopover(true);
+      } else {
+        // Collect the artifact
+        collectArtifact(artifact, originalContent, originalHref);
       }
-      // For now, just close the popover - Travel feature will be added later
-      hideArtifactPopover(true);
-    } else {
-      // Collect the artifact
-      collectArtifact(artifact, originalContent, originalHref);
-    }
-  });
+    });
+  }
 
   // Setup focus trap for keyboard navigation
   setupPopoverFocusTrap(popoverElement, takeBtn, leaveBtn, closeBtn);
@@ -300,9 +377,13 @@ function showArtifactPopover(artifact: Artifact): void {
   // Pause movement input while popover is open
   pauseInput();
 
-  // Focus the primary action button (Take/Travel) after a short delay for animation
+  // Focus the primary action button (Take/Travel for most, Leave for direction)
   requestAnimationFrame(() => {
-    takeBtn?.focus();
+    if (hasAction && takeBtn) {
+      takeBtn.focus();
+    } else {
+      leaveBtn?.focus();
+    }
   });
 }
 
@@ -315,8 +396,15 @@ function hideArtifactPopover(wasDismissedByUser: boolean = false): void {
     collisionCooldownUntil = Date.now() + COLLISION_COOLDOWN_MS;
   }
 
+  // Track dismissed ghost marker
+  if (wasDismissedByUser && currentPopoverGhostMarker) {
+    lastDismissedGhostMarkerId = currentPopoverGhostMarker.id;
+    collisionCooldownUntil = Date.now() + COLLISION_COOLDOWN_MS;
+  }
+
   popoverElement.classList.remove("at-popover--visible");
   currentPopoverArtifact = null;
+  currentPopoverGhostMarker = null;
 
   // Remove focus trap handler
   if (popoverFocusTrapHandler) {
@@ -329,10 +417,67 @@ function hideArtifactPopover(wasDismissedByUser: boolean = false): void {
 }
 
 /**
+ * Shows a popover for a ghost marker (collected artifact location)
+ * Ghost markers only have a "Leave" action - you can't take them again
+ */
+function showGhostMarkerPopover(ghost: GhostMarker): void {
+  if (!popoverElement) return;
+
+  currentPopoverGhostMarker = ghost;
+
+  // Build popover content - show original content but with "Memory" title
+  const icon = "⭐";
+  const originalIcon = ARTIFACT_ICONS[ghost.originalType];
+  const label = `Memory of ${ARTIFACT_TYPE_LABELS[ghost.originalType]}`;
+
+  popoverElement.innerHTML = `
+    <div class="at-popover-header">
+      <span class="at-popover-icon">${icon}</span>
+      <span class="at-popover-title">${label}</span>
+      <button class="at-popover-close" tabindex="0" data-action="close" aria-label="Close">✕</button>
+    </div>
+    <div class="at-popover-content">
+      <div class="at-popover-memory-note">
+        <span class="at-popover-memory-icon">${originalIcon}</span>
+        You collected this item here
+      </div>
+      <div class="at-popover-preview">${ghost.originalContent}</div>
+    </div>
+    <div class="at-popover-actions">
+      <button class="at-popover-btn at-popover-btn--primary" tabindex="0" data-action="leave">Continue</button>
+    </div>
+  `;
+
+  // Add event listeners
+  const closeBtn = popoverElement.querySelector(
+    '[data-action="close"]'
+  ) as HTMLButtonElement;
+  const leaveBtn = popoverElement.querySelector(
+    '[data-action="leave"]'
+  ) as HTMLButtonElement;
+
+  closeBtn?.addEventListener("click", () => hideArtifactPopover(true));
+  leaveBtn?.addEventListener("click", () => hideArtifactPopover(true));
+
+  // Setup focus trap for keyboard navigation
+  setupPopoverFocusTrap(popoverElement, null, leaveBtn, closeBtn);
+
+  popoverElement.classList.add("at-popover--visible");
+
+  // Pause movement input while popover is open
+  pauseInput();
+
+  // Focus the Continue button
+  requestAnimationFrame(() => {
+    leaveBtn?.focus();
+  });
+}
+
+/**
  * Returns whether the artifact popover is currently visible
  */
 export function isPopoverVisible(): boolean {
-  return currentPopoverArtifact !== null;
+  return currentPopoverArtifact !== null || currentPopoverGhostMarker !== null;
 }
 
 // Focus trap handler reference
@@ -403,43 +548,69 @@ function setupPopoverFocusTrap(
 /**
  * Gets the displayable content from an element.
  * For void elements like <img>, returns outerHTML.
- * For complex styled elements (cards, tags), returns outerHTML to preserve styling.
+ * For complex styled elements (cards, tags, links/portals), returns outerHTML to preserve styling.
  * For other elements, returns innerHTML.
  */
 function getElementContent(element: HTMLElement): string {
   const tagName = element.tagName.toLowerCase();
-  
+
   // Void elements that have no innerHTML - use outerHTML instead
-  const voidElements = ['img', 'br', 'hr', 'input', 'embed', 'area', 'base', 'col', 'link', 'meta', 'source', 'track', 'wbr'];
-  
+  const voidElements = [
+    "img",
+    "br",
+    "hr",
+    "input",
+    "embed",
+    "area",
+    "base",
+    "col",
+    "link",
+    "meta",
+    "source",
+    "track",
+    "wbr",
+  ];
+
   if (voidElements.includes(tagName)) {
     // For images, create a constrained version to fit in the preview
-    if (tagName === 'img') {
+    if (tagName === "img") {
       const clone = element.cloneNode(true) as HTMLImageElement;
-      clone.style.maxWidth = '100%';
-      clone.style.maxHeight = '150px';
-      clone.style.objectFit = 'contain';
-      clone.style.borderRadius = '8px';
+      clone.style.maxWidth = "100%";
+      clone.style.maxHeight = "150px";
+      clone.style.objectFit = "contain";
+      clone.style.borderRadius = "8px";
       return clone.outerHTML;
     }
     return element.outerHTML;
   }
-  
+
   // For elements with no innerHTML but meaningful content (like empty divs with background images)
-  if (!element.innerHTML.trim() && element.classList.contains('image-placeholder')) {
+  if (
+    !element.innerHTML.trim() &&
+    element.classList.contains("image-placeholder")
+  ) {
     return element.outerHTML;
   }
-  
-  // For complex styled elements (cards, tags), use outerHTML to preserve their styling
-  // These elements have CSS classes that define their appearance
-  if (element.classList.contains('card') || element.classList.contains('tag')) {
+
+  // For complex styled elements (cards, tags, links/portals), use outerHTML to preserve their styling
+  // These elements have CSS classes or tag-specific styling that define their appearance
+  if (
+    element.classList.contains("card") ||
+    element.classList.contains("tag") ||
+    tagName === "a"
+  ) {
     const clone = element.cloneNode(true) as HTMLElement;
     // Ensure the element displays properly in the preview container
-    clone.style.margin = '0';
-    clone.style.display = 'inline-block';
+    clone.style.margin = "0";
+    clone.style.display = "inline-block";
+    // For links, remove href to prevent navigation but keep visual styling
+    if (tagName === "a") {
+      (clone as HTMLAnchorElement).removeAttribute("href");
+      // Styling is handled by CSS in .at-popover-preview a
+    }
     return clone.outerHTML;
   }
-  
+
   return element.innerHTML;
 }
 
@@ -460,9 +631,27 @@ function collectArtifact(
   // Add to inventory
   state.items.push(item);
 
-  // Remove from interaction layer
+  // Remove from interaction layer and get position for ghost marker
+  let artifactPosition: { x: number; y: number } | null = null;
   if (removeArtifactFunc) {
-    removeArtifactFunc(artifact.id);
+    artifactPosition = removeArtifactFunc(artifact.id);
+  }
+
+  // Create ghost marker at the artifact's position with original content
+  // and set it as dismissed to prevent immediate re-triggering
+  if (artifactPosition) {
+    const ghostId = createGhostMarker(
+      artifactPosition,
+      artifact.type,
+      originalContent,
+      originalHref
+    );
+
+    // Mark the newly created ghost as dismissed to prevent immediate collision
+    if (ghostId) {
+      lastDismissedGhostMarkerId = ghostId;
+      collisionCooldownUntil = Date.now() + COLLISION_COOLDOWN_MS;
+    }
   }
 
   // Update bag counter
@@ -503,7 +692,7 @@ function updateBagCounter(): void {
   const counter = bagElement.querySelector(".at-bag-counter");
   if (counter) {
     counter.textContent = String(state.items.length);
-    
+
     // Show/hide counter based on item count
     if (state.items.length > 0) {
       counter.classList.add("at-bag-counter--visible");
@@ -530,9 +719,10 @@ function createDialogElement(): HTMLDivElement {
 function renderInventoryDialog(): void {
   if (!dialogElement) return;
 
-  const itemsHtml = state.items.length === 0
-    ? `<div class="at-inventory-empty">Your bag is empty. Explore and collect artifacts!</div>`
-    : state.items.map((item) => renderInventoryItem(item)).join("");
+  const itemsHtml =
+    state.items.length === 0
+      ? `<div class="at-inventory-empty">Your bag is empty. Explore and collect artifacts!</div>`
+      : state.items.map((item) => renderInventoryItem(item)).join("");
 
   dialogElement.innerHTML = `
     <div class="at-inventory-dialog-header">
@@ -550,7 +740,9 @@ function renderInventoryDialog(): void {
   closeBtn?.addEventListener("click", () => closeInventory());
 
   // Add accordion listeners
-  const accordionHeaders = dialogElement.querySelectorAll(".at-inventory-item-header");
+  const accordionHeaders = dialogElement.querySelectorAll(
+    ".at-inventory-item-header"
+  );
   accordionHeaders.forEach((header) => {
     header.addEventListener("click", () => {
       const itemId = header.getAttribute("data-item-id");
@@ -567,7 +759,9 @@ function renderInventoryItem(item: InventoryItem): string {
   const isExpanded = state.expandedItemId === item.id;
 
   return `
-    <div class="at-inventory-item ${isExpanded ? "at-inventory-item--expanded" : ""}">
+    <div class="at-inventory-item ${
+      isExpanded ? "at-inventory-item--expanded" : ""
+    }">
       <div class="at-inventory-item-header" data-item-id="${item.id}">
         <span class="at-inventory-item-icon">${icon}</span>
         <span class="at-inventory-item-label">${label}</span>
@@ -575,7 +769,11 @@ function renderInventoryItem(item: InventoryItem): string {
       </div>
       <div class="at-inventory-item-content">
         <div class="at-inventory-item-preview">${item.originalContent}</div>
-        ${item.originalHref ? `<div class="at-inventory-item-link">→ ${item.originalHref}</div>` : ""}
+        ${
+          item.originalHref
+            ? `<div class="at-inventory-item-link">→ ${item.originalHref}</div>`
+            : ""
+        }
       </div>
     </div>
   `;
@@ -611,17 +809,17 @@ function createPopoverElement(): HTMLDivElement {
 function setupArtifactClickHandler(): void {
   artifactClickHandler = (e: Event) => {
     const target = e.target as HTMLElement;
-    
+
     // Check if clicked element is an artifact
     if (target.classList.contains("at-artifact")) {
       e.preventDefault();
       e.stopPropagation();
-      
+
       // Find the artifact by matching the icon element
       if (getArtifactsFunc) {
         const artifacts = getArtifactsFunc();
         const artifact = artifacts.find((a) => a.iconElement === target);
-        
+
         if (artifact && !currentPopoverArtifact) {
           // Check if artifact is within the viewport before allowing interaction
           if (isArtifactInViewport(artifact.iconElement)) {
@@ -651,16 +849,16 @@ function isArtifactInViewport(element: HTMLElement): boolean {
   const rect = element.getBoundingClientRect();
   const elementCenterX = rect.left + rect.width / 2;
   const elementCenterY = rect.top + rect.height / 2;
-  
+
   // Get the viewport element to determine its bounds
   const viewport = document.getElementById("adventure-time-viewport");
   if (!viewport) {
     // Fallback: if no viewport found, allow the click
     return true;
   }
-  
+
   const viewportRect = viewport.getBoundingClientRect();
-  
+
   // Check if the artifact's center is within the viewport bounds
   return (
     elementCenterX >= viewportRect.left &&
@@ -894,6 +1092,18 @@ function getInventoryStyles(): string {
       overflow-y: auto;
     }
 
+    /* Reset any inherited restrictions on inventory preview content */
+    .at-inventory-item-preview * {
+      pointer-events: auto !important;
+      cursor: auto !important;
+    }
+
+    .at-inventory-item-preview a {
+      color: #3498db !important;
+      text-decoration: underline !important;
+      cursor: pointer !important;
+    }
+
     .at-inventory-item-link {
       padding: 8px 16px;
       color: #3498db;
@@ -972,6 +1182,38 @@ function getInventoryStyles(): string {
       line-height: 1.6;
     }
 
+    /* Reset any inherited restrictions on preview content */
+    .at-popover-preview * {
+      pointer-events: auto !important;
+      cursor: auto !important;
+    }
+
+    .at-popover-preview a {
+      color: #3498db !important;
+      text-decoration: underline !important;
+      cursor: pointer !important;
+    }
+
+    /* Ghost marker memory note */
+    .at-popover-memory-note {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      margin-bottom: 12px;
+      background: linear-gradient(135deg, #fff9e6 0%, #fff3cc 100%);
+      border: 1px dashed #e6c84a;
+      border-radius: 8px;
+      color: #8a7a3a;
+      font-size: 13px;
+      font-style: italic;
+    }
+
+    .at-popover-memory-icon {
+      font-size: 18px;
+      opacity: 0.7;
+    }
+
     .at-popover-link {
       margin-top: 12px;
       padding-top: 12px;
@@ -1048,4 +1290,3 @@ function getInventoryStyles(): string {
     }
   `;
 }
-

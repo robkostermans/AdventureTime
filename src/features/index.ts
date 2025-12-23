@@ -15,6 +15,7 @@ import {
   removeArtifact,
   updateArtifactViewportStates,
 } from "./interaction";
+import { initDesignLayer, destroyDesignLayer } from "./design";
 import { initInventory, destroyInventory } from "./inventory";
 import {
   initInput,
@@ -53,6 +54,20 @@ export async function initFeatures(
         worldContainer
       );
       cleanupFunctions.push(destroyInteraction);
+
+      // Initialize design layer (below interaction layer, decorative blobs)
+      if (config.design.enabled) {
+        initDesignLayer(
+          {
+            enabled: true,
+            debug: config.debug,
+            backgroundColor: "transparent",
+          },
+          worldContainer,
+          getArtifacts
+        );
+        cleanupFunctions.push(destroyDesignLayer);
+      }
 
       // Initialize inventory system (depends on interaction layer)
       if (config.inventory.enabled) {
@@ -102,6 +117,8 @@ export async function initFeatures(
       enabled: true,
       debug: config.debug,
       speed: config.movement.speed,
+      acceleration: config.movement.acceleration,
+      deceleration: config.movement.deceleration,
     });
     cleanupFunctions.push(destroyInput);
 
@@ -110,9 +127,9 @@ export async function initFeatures(
       moveWorld(direction);
     });
 
-    // Connect input to avatar rotation/offset
-    setAvatarDirectionCallback((direction) => {
-      updateAvatarMovement(direction);
+    // Connect input to avatar rotation/offset (with velocity factor for synced animations)
+    setAvatarDirectionCallback((direction, velocityFactor) => {
+      updateAvatarMovement(direction, velocityFactor);
     });
 
     // Connect movement stop to avatar return-to-center
@@ -135,6 +152,7 @@ export async function initFeatures(
 export function destroyFeatures(): void {
   destroyInput();
   destroyInventory();
+  destroyDesignLayer();
   destroyAvatar();
   destroyViewport();
   destroyInteraction();
@@ -147,4 +165,5 @@ export * from "./avatar";
 export * from "./world";
 export * from "./input";
 export * from "./interaction";
+export * from "./design";
 export * from "./inventory";
