@@ -1,0 +1,13 @@
+/* World Styles */
+
+.at-world-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  min-width: 100vw;
+  min-height: 100vh;
+  transition: transform 0.05s linear;
+  transform-origin: top left;
+  background: var(--at-world-bg, #1a1a2e);
+}
+

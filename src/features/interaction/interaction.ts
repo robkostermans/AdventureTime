@@ -14,6 +14,7 @@ import {
   ARTIFACT_SELECTORS,
   BLOCK_LEVEL_TAGS,
 } from "./types";
+import interactionStyles from "./interaction.css?inline";
 
 let isInitialized = false;
 let config: InteractionFeatureConfig;
@@ -41,15 +42,18 @@ export function initInteraction(
     return;
   }
 
-  // Inject interaction layer styles
-  const styleCleanup = injectStyles(
-    getInteractionStyles(config.backgroundColor),
-    INTERACTION_STYLES_ID
-  );
+  // Inject interaction layer styles from CSS module
+  const styleCleanup = injectStyles(interactionStyles, INTERACTION_STYLES_ID);
   cleanupFunctions.push(styleCleanup);
 
   // Create the interaction layer
   interactionLayer = createInteractionLayer();
+
+  // Set CSS variable for background color
+  interactionLayer.style.setProperty(
+    "--at-interaction-bg",
+    config.backgroundColor
+  );
 
   // Add interaction layer to world container (between layer 1 and 2)
   worldContainer.appendChild(interactionLayer);
@@ -464,126 +468,4 @@ function createArtifact(
   };
 
   return artifact;
-}
-
-function getInteractionStyles(backgroundColor: string): string {
-  return `
-    .at-interaction-layer {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      z-index: 10;
-      background: ${backgroundColor};
-    }
-
-    .at-artifact {
-      position: absolute;
-      transform: translate(-50%, -50%);
-      font-size: 24px;
-      pointer-events: auto;
-      cursor: pointer;
-      transition: transform 0.2s ease, filter 0.2s ease;
-      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
-      z-index: 11;
-    }
-
-    .at-artifact:hover {
-      transform: translate(-50%, -50%) scale(1.3);
-      filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.4));
-    }
-
-    /* Artifacts outside viewport - disable interaction styling */
-    .at-artifact--outside-viewport {
-      cursor: default;
-      pointer-events: none;
-    }
-
-    .at-artifact--outside-viewport:hover {
-      transform: translate(-50%, -50%);
-      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
-    }
-
-    /* Artifact type specific styles */
-    .at-artifact-portal {
-      font-size: 28px;
-    }
-
-    .at-artifact-gold {
-      font-size: 32px;
-      animation: at-gold-shine 3s ease-in-out infinite;
-    }
-
-    .at-artifact-silver {
-      font-size: 26px;
-    }
-
-    .at-artifact-diamond {
-      font-size: 30px;
-      animation: at-diamond-sparkle 2.5s ease-in-out infinite;
-    }
-
-    .at-artifact-paper {
-      font-size: 22px;
-    }
-
-    /* Direction artifact sizes scale with header level */
-    /* Base artifact size is 24px, h1 is 2x (48px), h4+ is standard (24px) */
-    .at-artifact-direction {
-      font-size: 24px; /* Default/fallback */
-    }
-
-    .at-artifact-direction-h1 {
-      font-size: 48px; /* 2x base size */
-    }
-
-    .at-artifact-direction-h2 {
-      font-size: 40px; /* ~1.67x base size */
-    }
-
-    .at-artifact-direction-h3 {
-      font-size: 32px; /* ~1.33x base size */
-    }
-
-    .at-artifact-direction-h4,
-    .at-artifact-direction-h5,
-    .at-artifact-direction-h6 {
-      font-size: 24px; /* Standard artifact size */
-    }
-
-    @keyframes at-gold-shine {
-      0%, 100% { filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3)) brightness(1); }
-      50% { filter: drop-shadow(0 2px 8px rgba(255, 215, 0, 0.6)) brightness(1.2); }
-    }
-
-    @keyframes at-diamond-sparkle {
-      0%, 100% { filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3)); }
-      50% { filter: drop-shadow(0 2px 12px rgba(100, 200, 255, 0.8)); }
-    }
-
-    /* Ghost marker - faint star left behind after collecting an artifact */
-    .at-ghost-marker {
-      position: absolute;
-      transform: translate(-50%, -50%);
-      font-size: 16px;
-      opacity: 0.3;
-      pointer-events: none;
-      z-index: 9;
-      filter: grayscale(0.5) drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
-      animation: at-ghost-fade-in 0.5s ease-out;
-    }
-
-    @keyframes at-ghost-fade-in {
-      0% { 
-        opacity: 0;
-        transform: translate(-50%, -50%) scale(1.5);
-      }
-      100% { 
-        opacity: 0.3;
-        transform: translate(-50%, -50%) scale(1);
-      }
-    }
-  `;
 }

@@ -3,6 +3,7 @@
 import { createElement, generateId, injectStyles } from "../../core/utils";
 import type { CleanupFunction } from "../../core/types";
 import type { ViewportFeatureConfig, ViewportElements } from "./types";
+import viewportStyles from "./viewport.css?inline";
 
 let isInitialized = false;
 let config: ViewportFeatureConfig;
@@ -18,18 +19,22 @@ export function initViewport(featureConfig: ViewportFeatureConfig): void {
     return;
   }
 
-  config = { enabled: true, debug: false, ...featureConfig };
+  config = { debug: false, ...featureConfig };
 
   if (!config.enabled) {
     return;
   }
 
-  // Inject viewport styles
-  const styleCleanup = injectStyles(getViewportStyles(config.size), VIEWPORT_STYLES_ID);
+  // Inject viewport styles from CSS module
+  const styleCleanup = injectStyles(viewportStyles, VIEWPORT_STYLES_ID);
   cleanupFunctions.push(styleCleanup);
 
   // Create viewport elements
   elements = createViewportElements();
+  
+  // Set CSS variable for viewport size
+  elements.container.style.setProperty("--at-viewport-size", `${config.size}px`);
+  
   document.body.appendChild(elements.container);
 
   cleanupFunctions.push(() => {
@@ -76,29 +81,4 @@ function createViewportElements(): ViewportElements {
   return { container, mask };
 }
 
-function getViewportStyles(size: number): string {
-  return `
-    .at-viewport-container {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: ${size}px;
-      height: ${size}px;
-      z-index: 999999;
-      pointer-events: none;
-    }
-
-    .at-viewport-mask {
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      position: relative;
-      border: 3px solid #333;
-      border-radius: 8px;
-      box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.7);
-      background: transparent;
-    }
-  `;
-}
 

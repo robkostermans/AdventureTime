@@ -8,11 +8,11 @@ This document defines how individual features are structured, implemented, and i
 
 ```
 src/features/feature-name/
-├── index.ts           # Public API exports
-├── feature-name.ts    # Main feature implementation
-├── types.ts           # Feature-specific types
-├── utils.ts           # Feature utilities (optional)
-└── styles.ts          # Feature styles (optional)
+├── index.ts              # Public API exports
+├── feature-name.ts       # Main feature implementation
+├── feature-name.css      # Feature styles (CSS module)
+├── types.ts              # Feature-specific types
+└── utils.ts              # Feature utilities (optional)
 ```
 
 ## Feature Implementation Pattern
@@ -269,15 +269,24 @@ export const exampleUtils = {
 
 ## Feature Styling
 
-### CSS Modules for Features
+### CSS Files with Inline Import
+
+Each feature has its own CSS file that is imported as a raw string using Vite's `?inline` query. This approach:
+- Keeps styles in separate `.css` files for better IDE support
+- Injects styles at runtime via `injectStyles()` utility
+- Uses CSS custom properties (variables) for dynamic values
+- Maintains bookmarklet compatibility (no external CSS files)
+
+### CSS File Pattern
 
 ```css
-/* src/features/example-feature/example-feature.module.css */
-.container {
+/* src/features/example-feature/example-feature.css */
+.at-example-container {
   position: fixed;
   top: 20px;
   right: 20px;
-  background: white;
+  width: var(--at-example-width, 200px);
+  background: var(--at-example-bg, white);
   border: 1px solid #ccc;
   border-radius: 4px;
   padding: 10px;
@@ -285,7 +294,7 @@ export const exampleUtils = {
   z-index: 999999;
 }
 
-.button {
+.at-example-button {
   background: #007bff;
   color: white;
   border: none;
@@ -294,27 +303,49 @@ export const exampleUtils = {
   cursor: pointer;
 }
 
-.button:hover {
+.at-example-button:hover {
   background: #0056b3;
 }
 ```
 
+### TypeScript Integration
+
 ```typescript
-// Using CSS modules in feature
-import styles from "./example-feature.module.css";
+// Import CSS as raw string
+import exampleStyles from "./example-feature.css?inline";
 
-function createFeatureElement(): HTMLElement {
-  const container = document.createElement("div");
-  container.className = styles.container;
+// In feature initialization
+export function initExampleFeature(config: ExampleFeatureConfig): void {
+  // Inject styles from CSS module
+  const styleCleanup = injectStyles(exampleStyles, EXAMPLE_STYLES_ID);
+  cleanupFunctions.push(styleCleanup);
 
-  const button = document.createElement("button");
-  button.className = styles.button;
-  button.textContent = "Click me";
-
-  container.appendChild(button);
-  return container;
+  // Create element and set CSS variables for dynamic values
+  const container = createContainer();
+  container.style.setProperty("--at-example-width", `${config.width}px`);
+  container.style.setProperty("--at-example-bg", config.backgroundColor);
 }
 ```
+
+### Type Declaration
+
+The `?inline` import requires a type declaration in `src/vite-env.d.ts`:
+
+```typescript
+/// <reference types="vite/client" />
+
+declare module "*.css?inline" {
+  const content: string;
+  export default content;
+}
+```
+
+### CSS Naming Convention
+
+All CSS classes use the `at-` prefix (AdventureTime) to avoid conflicts with host page styles:
+- `.at-feature-name` for feature containers
+- `.at-feature-name-element` for child elements
+- `--at-feature-name-property` for CSS custom properties
 
 ## Feature Testing Pattern
 

@@ -3,6 +3,7 @@
 import { createElement, injectStyles } from "../../core/utils";
 import type { CleanupFunction, Vector2D } from "../../core/types";
 import type { AvatarFeatureConfig, AvatarState } from "./types";
+import avatarStyles from "./avatar.css?inline";
 
 let isInitialized = false;
 let config: AvatarFeatureConfig;
@@ -26,11 +27,7 @@ export function initAvatar(featureConfig: AvatarFeatureConfig): void {
   }
 
   config = {
-    enabled: true,
     debug: false,
-    maxOffset: 32,
-    offsetSmoothing: 0.15,
-    rotationEnabled: true,
     ...featureConfig,
   };
 
@@ -46,15 +43,19 @@ export function initAvatar(featureConfig: AvatarFeatureConfig): void {
     targetRotation: 0,
   };
 
-  // Inject avatar styles
-  const styleCleanup = injectStyles(
-    getAvatarStyles(config.size, config.color, config.shape),
-    AVATAR_STYLES_ID
-  );
+  // Inject avatar styles from CSS module
+  const styleCleanup = injectStyles(avatarStyles, AVATAR_STYLES_ID);
   cleanupFunctions.push(styleCleanup);
 
   // Create avatar element
   avatarElement = createAvatarElement();
+  
+  // Set CSS variables for avatar customization
+  const borderRadius = config.shape === "circle" ? "50%" : "4px";
+  avatarElement.style.setProperty("--at-avatar-size", `${config.size}px`);
+  avatarElement.style.setProperty("--at-avatar-color", config.color);
+  avatarElement.style.setProperty("--at-avatar-border-radius", borderRadius);
+  
   document.body.appendChild(avatarElement);
 
   cleanupFunctions.push(() => {
@@ -136,6 +137,9 @@ export function getAvatarState(): AvatarState {
   return { ...avatarState };
 }
 
+// Threshold for considering values "settled" (to avoid endless micro-updates)
+const SETTLE_THRESHOLD = 0.01;
+
 function startAnimationLoop(): void {
   const animate = () => {
     updateAvatarTransform();
@@ -148,22 +152,48 @@ function startAnimationLoop(): void {
 function updateAvatarTransform(): void {
   if (!avatarElement) return;
 
-  // Smoothly interpolate offset toward target (ease-out effect)
-  avatarState.offset.x += (avatarState.targetOffset.x - avatarState.offset.x) * config.offsetSmoothing;
-  avatarState.offset.y += (avatarState.targetOffset.y - avatarState.offset.y) * config.offsetSmoothing;
-
-  // Smoothly interpolate rotation toward target
+  // Calculate deltas
+  const offsetDeltaX = avatarState.targetOffset.x - avatarState.offset.x;
+  const offsetDeltaY = avatarState.targetOffset.y - avatarState.offset.y;
+  
   // Handle angle wrapping for smooth rotation
   let rotationDiff = avatarState.targetRotation - avatarState.rotation;
-  
-  // Normalize to -180 to 180 range for shortest path rotation
   while (rotationDiff > 180) rotationDiff -= 360;
   while (rotationDiff < -180) rotationDiff += 360;
-  
+
+  // Check if we're already settled (no significant change needed)
+  const isSettled = 
+    Math.abs(offsetDeltaX) < SETTLE_THRESHOLD &&
+    Math.abs(offsetDeltaY) < SETTLE_THRESHOLD &&
+    Math.abs(rotationDiff) < SETTLE_THRESHOLD;
+
+  if (isSettled) {
+    // Snap to exact target values to avoid floating point drift
+    if (avatarState.offset.x !== avatarState.targetOffset.x ||
+        avatarState.offset.y !== avatarState.targetOffset.y ||
+        avatarState.rotation !== avatarState.targetRotation) {
+      avatarState.offset.x = avatarState.targetOffset.x;
+      avatarState.offset.y = avatarState.targetOffset.y;
+      avatarState.rotation = avatarState.targetRotation;
+      applyTransform();
+    }
+    return; // Skip update - avatar is at rest
+  }
+
+  // Smoothly interpolate offset toward target (ease-out effect)
+  avatarState.offset.x += offsetDeltaX * config.offsetSmoothing;
+  avatarState.offset.y += offsetDeltaY * config.offsetSmoothing;
+
+  // Smoothly interpolate rotation toward target
   avatarState.rotation += rotationDiff * config.offsetSmoothing;
 
-  // Apply transform
-  // Base transform centers the avatar, then we add offset and rotation
+  applyTransform();
+}
+
+function applyTransform(): void {
+  if (!avatarElement) return;
+  
+  // Apply transform - base transform centers the avatar, then we add offset and rotation
   const transform = `translate(calc(-50% + ${avatarState.offset.x}px), calc(-50% + ${avatarState.offset.y}px)) rotate(${avatarState.rotation}deg)`;
   avatarElement.style.transform = transform;
 }
@@ -183,56 +213,3 @@ function createAvatarElement(): HTMLDivElement {
   return avatar;
 }
 
-function getAvatarStyles(
-  size: number,
-  color: string,
-  shape: "circle" | "square"
-): string {
-  const borderRadius = shape === "circle" ? "50%" : "4px";
-
-  return `
-    .at-avatar {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: ${size}px;
-      height: ${size}px;
-      background: ${color};
-      border-radius: ${borderRadius};
-      z-index: 1000000;
-      pointer-events: none;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: box-shadow 0.2s ease;
-    }
-
-    .at-avatar-face {
-      width: 60%;
-      height: 60%;
-      position: relative;
-    }
-
-    /* Eyes */
-    .at-avatar-face::before,
-    .at-avatar-face::after {
-      content: '';
-      position: absolute;
-      width: 6px;
-      height: 6px;
-      background: #333;
-      border-radius: 50%;
-      top: 25%;
-    }
-
-    .at-avatar-face::before {
-      left: 20%;
-    }
-
-    .at-avatar-face::after {
-      right: 20%;
-    }
-  `;
-}

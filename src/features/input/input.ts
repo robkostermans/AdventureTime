@@ -31,7 +31,7 @@ export function initInput(featureConfig: InputFeatureConfig): void {
     return;
   }
 
-  config = { enabled: true, debug: false, ...featureConfig };
+  config = { debug: false, ...featureConfig };
 
   if (!config.enabled) {
     return;

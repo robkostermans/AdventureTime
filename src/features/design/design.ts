@@ -10,6 +10,7 @@ import type {
   BlobStyle,
 } from "./types";
 import { BLOB_STYLES, BLOB_MERGE_GROUPS } from "./types";
+import designStyles from "./design.css?inline";
 
 let isInitialized = false;
 let config: DesignLayerConfig;
@@ -43,8 +44,8 @@ export function initDesignLayer(
     return;
   }
 
-  // Inject design layer styles
-  const styleCleanup = injectStyles(getDesignStyles(), DESIGN_STYLES_ID);
+  // Inject design layer styles from CSS module
+  const styleCleanup = injectStyles(designStyles, DESIGN_STYLES_ID);
   cleanupFunctions.push(styleCleanup);
 
   // Create the design layer
@@ -624,36 +625,5 @@ function getPatternDefinitions(): string {
     <pattern id="dotted-bg" patternUnits="userSpaceOnUse" width="8" height="8">
       <circle cx="4" cy="4" r="1" fill="currentColor" opacity="0.3"/>
     </pattern>
-  `;
-}
-
-function getDesignStyles(): string {
-  return `
-    .at-design-layer {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      z-index: 5; /* Below interaction layer (z-index: 10) */
-      overflow: visible;
-    }
-
-    .at-design-svg {
-      overflow: visible;
-    }
-
-    .at-blob {
-      opacity: 1;
-    }
-
-    .at-blob-fill {
-      transition: opacity 0.3s ease;
-    }
-
-    .at-blob-border {
-      transition: stroke-opacity 0.3s ease;
-    }
   `;
 }

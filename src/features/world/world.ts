@@ -4,6 +4,7 @@ import { createElement, injectStyles, clamp } from "../../core/utils";
 import type { CleanupFunction, Vector2D } from "../../core/types";
 import type { WorldFeatureConfig, WorldBounds, WorldState } from "./types";
 import { updateArtifactViewportStates } from "../interaction";
+import worldStyles from "./world.css?inline";
 
 let isInitialized = false;
 let config: WorldFeatureConfig;
@@ -20,7 +21,7 @@ export function initWorld(featureConfig: WorldFeatureConfig): void {
     return;
   }
 
-  config = { enabled: true, debug: false, ...featureConfig };
+  config = { debug: false, ...featureConfig };
 
   if (!config.enabled) {
     return;
@@ -35,15 +36,15 @@ export function initWorld(featureConfig: WorldFeatureConfig): void {
     bounds,
   };
 
-  // Inject world styles
-  const styleCleanup = injectStyles(
-    getWorldStyles(config.backgroundColor),
-    WORLD_STYLES_ID
-  );
+  // Inject world styles from CSS module
+  const styleCleanup = injectStyles(worldStyles, WORLD_STYLES_ID);
   cleanupFunctions.push(styleCleanup);
 
   // Create world container that wraps the page content
   worldContainer = createWorldContainer();
+  
+  // Set CSS variable for background color
+  worldContainer.style.setProperty("--at-world-bg", config.backgroundColor);
 
   // Move all body children into the world container
   wrapPageContent(worldContainer);
@@ -219,18 +220,4 @@ function unwrapPageContent(container: HTMLDivElement): void {
   container.remove();
 }
 
-function getWorldStyles(backgroundColor: string): string {
-  return `
-    .at-world-container {
-      position: absolute;
-      top: 0;
-      left: 0;
-      min-width: 100vw;
-      min-height: 100vh;
-      transition: transform 0.05s linear;
-      transform-origin: top left;
-      background: ${backgroundColor};
-    }
-  `;
-}
 
