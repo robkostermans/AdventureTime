@@ -28,6 +28,7 @@ import {
   destroyNavigation,
   setNavigationMoving,
 } from "./navigation";
+import { initStoryMode, destroyStoryMode } from "./storymode";
 import {
   initInput,
   destroyInput,
@@ -81,6 +82,16 @@ export async function initFeatures(
         cleanupFunctions.push(destroyDesignLayer);
       }
 
+      // Initialize story mode (before inventory, as inventory depends on it)
+      if (config.storyMode?.enabled) {
+        initStoryMode({
+          enabled: true,
+          debug: config.debug,
+          typewriterSpeed: config.storyMode.typewriterSpeed ?? 50,
+        });
+        cleanupFunctions.push(destroyStoryMode);
+      }
+
       // Initialize inventory system (depends on interaction layer)
       if (config.inventory.enabled) {
         initInventory(
@@ -89,6 +100,7 @@ export async function initFeatures(
             debug: config.debug,
             avatarSize: config.avatar.size,
             collisionRadius: config.inventory.collisionRadius,
+            useStoryMode: config.storyMode?.enabled ?? false,
           },
           getArtifacts,
           removeArtifact
@@ -194,6 +206,7 @@ export function destroyFeatures(): void {
   destroyInput();
   destroyNavigation();
   destroyInventory();
+  destroyStoryMode();
   destroyDesignLayer();
   destroyAvatar();
   destroyViewport();
@@ -274,3 +287,4 @@ export * from "./interaction";
 export * from "./design";
 export * from "./inventory";
 export * from "./navigation";
+export * from "./storymode";

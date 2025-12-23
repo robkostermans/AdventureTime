@@ -6,6 +6,7 @@ import type { Artifact, ArtifactType } from "../interaction/types";
 export interface InventoryFeatureConfig extends FeatureConfig {
   avatarSize: number; // Avatar size for collision detection
   collisionRadius: number; // Extra radius around avatar for collision
+  useStoryMode?: boolean; // Whether to use story mode instead of popover
 }
 
 /**

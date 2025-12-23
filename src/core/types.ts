@@ -10,6 +10,12 @@ export interface AppConfig {
   inventory: InventoryConfig;
   design: DesignConfig;
   navigation?: NavigationConfig; // Optional navigation indicator feature
+  storyMode?: StoryModeConfig; // Optional story mode (terminal-style text interface)
+}
+
+export interface StoryModeConfig {
+  enabled: boolean; // Whether story mode is enabled (replaces popover with terminal text)
+  typewriterSpeed?: number; // Characters per second for typewriter effect (default: 50)
 }
 
 export interface DesignConfig {

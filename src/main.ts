@@ -73,6 +73,10 @@ import type { AppConfig } from "./core/types";
       // indicatorSize: 8,
       // indicatorColor: "#FFD700",
     },
+    storyMode: {
+      enabled: true, // Enable story mode (terminal-style text interface instead of popover)
+      typewriterSpeed: 50, // Characters per second for typewriter effect
+    },
   };
 
   // Initialize and start application

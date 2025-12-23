@@ -11,6 +11,12 @@ import {
   getIntroConfig,
 } from "../interaction";
 import { pauseInput, resumeInput } from "../input";
+import {
+  isStoryModeEnabled,
+  isStoryModeActive,
+  showStoryMode,
+  setStoryModeCallbacks,
+} from "../storymode";
 import type {
   InventoryFeatureConfig,
   InventoryItem,
@@ -106,6 +112,11 @@ export function initInventory(
   // Setup artifact click handler
   setupArtifactClickHandler();
 
+  // Setup story mode callbacks if story mode is enabled
+  if (config.useStoryMode && isStoryModeEnabled()) {
+    setStoryModeCallbacks(handleStoryModeTake, handleStoryModeLeave);
+  }
+
   // Start collision detection
   startCollisionDetection();
 
@@ -189,8 +200,12 @@ export function closeInventory(): void {
 
 function startCollisionDetection(): void {
   const checkCollisions = () => {
-    // Skip if popover is already showing
-    if (currentPopoverArtifact || currentPopoverGhostMarker) {
+    // Skip if popover is already showing or story mode is active
+    if (
+      currentPopoverArtifact ||
+      currentPopoverGhostMarker ||
+      isStoryModeActive()
+    ) {
       collisionCheckInterval = requestAnimationFrame(checkCollisions);
       return;
     }
@@ -213,7 +228,12 @@ function startCollisionDetection(): void {
           collisionCheckInterval = requestAnimationFrame(checkCollisions);
           return;
         }
-        showArtifactPopover(collidingArtifact);
+        // Use story mode or popover based on config
+        if (config.useStoryMode && isStoryModeEnabled()) {
+          showArtifactStoryMode(collidingArtifact);
+        } else {
+          showArtifactPopover(collidingArtifact);
+        }
         collisionCheckInterval = requestAnimationFrame(checkCollisions);
         return;
       } else {
@@ -499,6 +519,104 @@ function showGhostMarkerPopover(ghost: GhostMarker): void {
   requestAnimationFrame(() => {
     leaveBtn?.focus();
   });
+}
+
+// ============================================
+// Story Mode Integration
+// ============================================
+
+/**
+ * Current artifact being processed in story mode
+ */
+let currentStoryModeArtifact: Artifact | null = null;
+let currentStoryModeContent: string | null = null;
+let currentStoryModeHref: string | undefined = undefined;
+
+/**
+ * Shows story mode terminal for an artifact
+ */
+function showArtifactStoryMode(artifact: Artifact): void {
+  currentStoryModeArtifact = artifact;
+
+  // Check if this is an intro artifact
+  const isIntro = artifact.isIntro === true;
+  const introConfig = isIntro ? getIntroConfig() : null;
+
+  // Extract original content
+  const originalContent = getElementContent(artifact.sourceElement);
+  currentStoryModeContent = originalContent;
+  currentStoryModeHref =
+    artifact.sourceElement.getAttribute("href") || undefined;
+
+  // For intro, get header content and intro text
+  let headerContent = originalContent;
+  let introText: string | undefined;
+
+  if (isIntro && introConfig?.text) {
+    headerContent = getElementContent(artifact.sourceElement);
+    introText = introConfig.text;
+  }
+
+  showStoryMode(
+    artifact,
+    headerContent,
+    isIntro,
+    introText,
+    currentStoryModeHref
+  );
+}
+
+/**
+ * Handle "Take" action from story mode
+ */
+function handleStoryModeTake(artifactId: string): void {
+  if (!currentStoryModeArtifact || currentStoryModeArtifact.id !== artifactId) {
+    return;
+  }
+
+  const artifact = currentStoryModeArtifact;
+  const isPortal = artifact.type === "portal";
+
+  if (isPortal) {
+    // Portal: Travel action (placeholder for now)
+    if (config.debug) {
+      console.log("Travel action triggered for portal:", currentStoryModeHref);
+    }
+    // For now, just handle as leave - Travel feature will be added later
+    handleStoryModeLeave(artifactId);
+  } else {
+    // Collect the artifact
+    collectArtifact(
+      artifact,
+      currentStoryModeContent || "",
+      currentStoryModeHref
+    );
+    clearStoryModeState();
+  }
+}
+
+/**
+ * Handle "Leave" action from story mode
+ */
+function handleStoryModeLeave(artifactId: string): void {
+  if (!currentStoryModeArtifact || currentStoryModeArtifact.id !== artifactId) {
+    return;
+  }
+
+  // Track dismissed artifact for cooldown
+  lastDismissedArtifactId = artifactId;
+  collisionCooldownUntil = Date.now() + COLLISION_COOLDOWN_MS;
+
+  clearStoryModeState();
+}
+
+/**
+ * Clear story mode state
+ */
+function clearStoryModeState(): void {
+  currentStoryModeArtifact = null;
+  currentStoryModeContent = null;
+  currentStoryModeHref = undefined;
 }
 
 /**

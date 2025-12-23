@@ -25,6 +25,7 @@ A vanilla TypeScript application with modular architecture that:
 | Design Layer            | Decorative blobs and themed regions            | [Design Layer](./design-layer.md)                       |
 | Inventory System        | Artifact collection and inventory management   | [Inventory System](./inventory-system.md)               |
 | Navigation Indicator    | Compass pointing to nearest direction artifact | [Navigation](./navigation.md)                           |
+| Story Mode              | Terminal-style text interface for interactions | [Story Mode](./storymode.md)                            |
 | Project Structure       | Overall file and folder organization           | [Project Structure](./project-structure.md)             |
 | Build System            | TypeScript compilation and bundling setup      | [Build System](./build-system.md)                       |
 | Module System           | How features are organized and imported        | [Module System](./module-system.md)                     |

@@ -88,7 +88,7 @@
 /* Intro artifact - special styling for the first direction artifact */
 .at-artifact-intro {
   font-size: 56px; /* Larger than h1 */
-  //animation: at-intro-pulse 2s ease-in-out infinite;
+  /* animation: at-intro-pulse 2s ease-in-out infinite; */
 }
 
 @keyframes at-intro-pulse {
