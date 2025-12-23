@@ -81,4 +81,3 @@ function createViewportElements(): ViewportElements {
   return { container, mask };
 }
 
-

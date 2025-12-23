@@ -5,6 +5,7 @@ export {
   destroyStoryMode,
   isStoryModeEnabled,
   isStoryModeActive,
+  handleStoryModeClick,
   setStoryModeCallbacks,
   showStoryMode,
   hideStoryMode,

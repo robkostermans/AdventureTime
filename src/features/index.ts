@@ -100,7 +100,6 @@ export async function initFeatures(
             debug: config.debug,
             avatarSize: config.avatar.size,
             collisionRadius: config.inventory.collisionRadius,
-            useStoryMode: config.storyMode?.enabled ?? false,
           },
           getArtifacts,
           removeArtifact

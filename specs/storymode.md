@@ -1,10 +1,10 @@
 # Story Mode Feature
 
-Story Mode provides a text-based game style interface for artifact interactions, replacing the default popover UI with a terminal-style text display at the bottom of the screen.
+Story Mode provides a text-based game style interface for artifact interactions, using a terminal-style text display at the bottom of the screen.
 
 ## Overview
 
-Instead of showing a popup dialog when encountering artifacts, Story Mode presents the interaction as a narrative text adventure:
+When encountering artifacts, Story Mode presents the interaction as a narrative text adventure:
 
 ```
 You have found a 🥇 gold coin containing:
@@ -171,14 +171,11 @@ The intro artifact is also a **single-choice artifact** - it uses warmer styling
 
 ### Integration with Inventory
 
-The inventory system checks if story mode is enabled before showing interactions:
+The inventory system uses story mode for all artifact interactions:
 
 ```typescript
-if (config.useStoryMode && isStoryModeEnabled()) {
-  showArtifactStoryMode(collidingArtifact);
-} else {
-  showArtifactPopover(collidingArtifact);
-}
+// On collision with artifact
+showArtifactStoryMode(collidingArtifact);
 ```
 
 ### Callbacks

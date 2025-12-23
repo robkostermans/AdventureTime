@@ -10,7 +10,7 @@ import {
   getGhostMarkers,
   getIntroConfig,
 } from "../interaction";
-import { pauseInput, resumeInput } from "../input";
+import { pauseInput, resumeInput, moveToPosition } from "../input";
 import {
   isStoryModeEnabled,
   isStoryModeActive,
@@ -32,7 +32,6 @@ let cleanupFunctions: CleanupFunction[] = [];
 // UI Elements
 let bagElement: HTMLDivElement | null = null;
 let dialogElement: HTMLDivElement | null = null;
-let popoverElement: HTMLDivElement | null = null;
 
 // State
 let state: InventoryState = {
@@ -47,8 +46,6 @@ let getArtifactsFunc: (() => Artifact[]) | null = null;
 let removeArtifactFunc:
   | ((id: string) => { x: number; y: number } | null)
   | null = null;
-let currentPopoverArtifact: Artifact | null = null;
-let currentPopoverGhostMarker: GhostMarker | null = null;
 let artifactClickHandler: ((e: Event) => void) | null = null;
 
 // Collision cooldown to prevent re-triggering after dismissing popover
@@ -60,7 +57,6 @@ const COLLISION_COOLDOWN_MS = 500; // 500ms cooldown after dismissing
 const INVENTORY_STYLES_ID = "adventure-time-inventory-styles";
 const BAG_ID = "adventure-time-inventory-bag";
 const DIALOG_ID = "adventure-time-inventory-dialog";
-const POPOVER_ID = "adventure-time-artifact-popover";
 
 export function initInventory(
   featureConfig: InventoryFeatureConfig,
@@ -94,16 +90,13 @@ export function initInventory(
   // Create UI elements
   bagElement = createBagElement();
   dialogElement = createDialogElement();
-  popoverElement = createPopoverElement();
 
   document.body.appendChild(bagElement);
   document.body.appendChild(dialogElement);
-  document.body.appendChild(popoverElement);
 
   cleanupFunctions.push(() => {
     bagElement?.remove();
     dialogElement?.remove();
-    popoverElement?.remove();
   });
 
   // Setup keyboard shortcut (Ctrl+I)
@@ -112,8 +105,8 @@ export function initInventory(
   // Setup artifact click handler
   setupArtifactClickHandler();
 
-  // Setup story mode callbacks if story mode is enabled
-  if (config.useStoryMode && isStoryModeEnabled()) {
+  // Setup story mode callbacks
+  if (isStoryModeEnabled()) {
     setStoryModeCallbacks(handleStoryModeTake, handleStoryModeLeave);
   }
 
@@ -138,11 +131,10 @@ export function destroyInventory(): void {
 
   bagElement = null;
   dialogElement = null;
-  popoverElement = null;
   getArtifactsFunc = null;
   removeArtifactFunc = null;
-  currentPopoverArtifact = null;
-  currentPopoverGhostMarker = null;
+  currentStoryModeArtifact = null;
+  currentStoryModeGhostMarker = null;
   lastDismissedArtifactId = null;
   lastDismissedGhostMarkerId = null;
   collisionCooldownUntil = 0;
@@ -175,11 +167,6 @@ export function toggleInventory(): void {
 export function openInventory(): void {
   if (!dialogElement) return;
 
-  // Close any open popover first
-  if (currentPopoverArtifact) {
-    hideArtifactPopover();
-  }
-
   state.isOpen = true;
   state.expandedItemId = null;
   renderInventoryDialog();
@@ -200,12 +187,8 @@ export function closeInventory(): void {
 
 function startCollisionDetection(): void {
   const checkCollisions = () => {
-    // Skip if popover is already showing or story mode is active
-    if (
-      currentPopoverArtifact ||
-      currentPopoverGhostMarker ||
-      isStoryModeActive()
-    ) {
+    // Skip if story mode is active
+    if (isStoryModeActive()) {
       collisionCheckInterval = requestAnimationFrame(checkCollisions);
       return;
     }
@@ -228,12 +211,8 @@ function startCollisionDetection(): void {
           collisionCheckInterval = requestAnimationFrame(checkCollisions);
           return;
         }
-        // Use story mode or popover based on config
-        if (config.useStoryMode && isStoryModeEnabled()) {
-          showArtifactStoryMode(collidingArtifact);
-        } else {
-          showArtifactPopover(collidingArtifact);
-        }
+        // Always use story mode for artifact interactions
+        showArtifactStoryMode(collidingArtifact);
         collisionCheckInterval = requestAnimationFrame(checkCollisions);
         return;
       } else {
@@ -252,7 +231,7 @@ function startCollisionDetection(): void {
         collisionCheckInterval = requestAnimationFrame(checkCollisions);
         return;
       }
-      showGhostMarkerPopover(collidingGhost);
+      showGhostMarkerStoryMode(collidingGhost);
     } else {
       // No ghost collision - clear the last dismissed ghost ID
       lastDismissedGhostMarkerId = null;
@@ -320,205 +299,6 @@ function findCollidingGhostMarker(
   }
 
   return null;
-}
-
-// ============================================
-// Artifact Popover
-// ============================================
-
-function showArtifactPopover(artifact: Artifact): void {
-  if (!popoverElement) return;
-
-  currentPopoverArtifact = artifact;
-
-  // Check if this is an intro artifact
-  const isIntro = artifact.isIntro === true;
-  const introConfig = isIntro ? getIntroConfig() : null;
-
-  // Extract original content - use outerHTML for void elements like <img>
-  // For intro artifacts, show the original header content above the intro text
-  let originalContent: string;
-  if (isIntro && introConfig?.text) {
-    const headerContent = getElementContent(artifact.sourceElement);
-    originalContent = `<div class="at-intro-header">${headerContent}</div><p class="at-intro-text">${introConfig.text}</p>`;
-  } else {
-    originalContent = getElementContent(artifact.sourceElement);
-  }
-  const originalHref = artifact.sourceElement.getAttribute("href") || undefined;
-
-  // Build popover content
-  // For intro, use custom icon and title from config
-  const icon =
-    isIntro && introConfig?.icon
-      ? introConfig.icon
-      : ARTIFACT_ICONS[artifact.type];
-  const label =
-    isIntro && introConfig?.title
-      ? introConfig.title
-      : ARTIFACT_TYPE_LABELS[artifact.type];
-  const actionLabel = ARTIFACT_ACTION_LABELS[artifact.type];
-  const isPortal = artifact.type === "portal";
-  const isDirection = artifact.type === "direction";
-  const hasAction = actionLabel !== null;
-
-  // For intro artifacts, the button should say "Start" instead of "Leave"
-  const leaveButtonLabel = isIntro ? "Start" : "Leave";
-
-  popoverElement.innerHTML = `
-    <div class="at-popover-header">
-      <span class="at-popover-icon">${icon}</span>
-      <span class="at-popover-title">${label}</span>
-      <button class="at-popover-close" tabindex="0" data-action="close" aria-label="Close">✕</button>
-    </div>
-    <div class="at-popover-content">
-      <div class="at-popover-preview${
-        isIntro ? " at-popover-preview--intro" : ""
-      }">${originalContent}</div>
-    </div>
-    <div class="at-popover-actions">
-      ${
-        hasAction
-          ? `<button class="at-popover-btn at-popover-btn--primary" tabindex="0" data-action="take">${actionLabel}</button>`
-          : ""
-      }
-      <button class="at-popover-btn ${
-        hasAction ? "at-popover-btn--secondary" : "at-popover-btn--primary"
-      }" tabindex="0" data-action="leave">${leaveButtonLabel}</button>
-    </div>
-  `;
-
-  // Add event listeners
-  const closeBtn = popoverElement.querySelector(
-    '[data-action="close"]'
-  ) as HTMLButtonElement;
-  const takeBtn = popoverElement.querySelector(
-    '[data-action="take"]'
-  ) as HTMLButtonElement | null;
-  const leaveBtn = popoverElement.querySelector(
-    '[data-action="leave"]'
-  ) as HTMLButtonElement;
-
-  closeBtn?.addEventListener("click", () => hideArtifactPopover(true));
-  leaveBtn?.addEventListener("click", () => hideArtifactPopover(true));
-
-  if (takeBtn) {
-    takeBtn.addEventListener("click", () => {
-      if (isPortal) {
-        // Portal: Travel action (placeholder for now)
-        if (config.debug) {
-          console.log("Travel action triggered for portal:", originalHref);
-        }
-        // For now, just close the popover - Travel feature will be added later
-        hideArtifactPopover(true);
-      } else {
-        // Collect the artifact
-        collectArtifact(artifact, originalContent, originalHref);
-      }
-    });
-  }
-
-  // Setup focus trap for keyboard navigation
-  setupPopoverFocusTrap(popoverElement, takeBtn, leaveBtn, closeBtn);
-
-  popoverElement.classList.add("at-popover--visible");
-
-  // Pause movement input while popover is open
-  pauseInput();
-
-  // Focus the primary action button (Take/Travel for most, Leave/Start for direction)
-  requestAnimationFrame(() => {
-    if (hasAction && takeBtn) {
-      takeBtn.focus();
-    } else {
-      leaveBtn?.focus();
-    }
-  });
-}
-
-function hideArtifactPopover(wasDismissedByUser: boolean = false): void {
-  if (!popoverElement) return;
-
-  // Track the dismissed artifact to prevent immediate re-collision
-  if (wasDismissedByUser && currentPopoverArtifact) {
-    lastDismissedArtifactId = currentPopoverArtifact.id;
-    collisionCooldownUntil = Date.now() + COLLISION_COOLDOWN_MS;
-  }
-
-  // Track dismissed ghost marker
-  if (wasDismissedByUser && currentPopoverGhostMarker) {
-    lastDismissedGhostMarkerId = currentPopoverGhostMarker.id;
-    collisionCooldownUntil = Date.now() + COLLISION_COOLDOWN_MS;
-  }
-
-  popoverElement.classList.remove("at-popover--visible");
-  currentPopoverArtifact = null;
-  currentPopoverGhostMarker = null;
-
-  // Remove focus trap handler
-  if (popoverFocusTrapHandler) {
-    popoverElement.removeEventListener("keydown", popoverFocusTrapHandler);
-    popoverFocusTrapHandler = null;
-  }
-
-  // Resume movement input
-  resumeInput();
-}
-
-/**
- * Shows a popover for a ghost marker (collected artifact location)
- * Ghost markers only have a "Leave" action - you can't take them again
- */
-function showGhostMarkerPopover(ghost: GhostMarker): void {
-  if (!popoverElement) return;
-
-  currentPopoverGhostMarker = ghost;
-
-  // Build popover content - show original content but with "Memory" title
-  const icon = "⭐";
-  const originalIcon = ARTIFACT_ICONS[ghost.originalType];
-  const label = `Memory of ${ARTIFACT_TYPE_LABELS[ghost.originalType]}`;
-
-  popoverElement.innerHTML = `
-    <div class="at-popover-header">
-      <span class="at-popover-icon">${icon}</span>
-      <span class="at-popover-title">${label}</span>
-      <button class="at-popover-close" tabindex="0" data-action="close" aria-label="Close">✕</button>
-    </div>
-    <div class="at-popover-content">
-      <div class="at-popover-memory-note">
-        <span class="at-popover-memory-icon">${originalIcon}</span>
-        You collected this item here
-      </div>
-      <div class="at-popover-preview">${ghost.originalContent}</div>
-    </div>
-    <div class="at-popover-actions">
-      <button class="at-popover-btn at-popover-btn--primary" tabindex="0" data-action="leave">Continue</button>
-    </div>
-  `;
-
-  // Add event listeners
-  const closeBtn = popoverElement.querySelector(
-    '[data-action="close"]'
-  ) as HTMLButtonElement;
-  const leaveBtn = popoverElement.querySelector(
-    '[data-action="leave"]'
-  ) as HTMLButtonElement;
-
-  closeBtn?.addEventListener("click", () => hideArtifactPopover(true));
-  leaveBtn?.addEventListener("click", () => hideArtifactPopover(true));
-
-  // Setup focus trap for keyboard navigation
-  setupPopoverFocusTrap(popoverElement, null, leaveBtn, closeBtn);
-
-  popoverElement.classList.add("at-popover--visible");
-
-  // Pause movement input while popover is open
-  pauseInput();
-
-  // Focus the Continue button
-  requestAnimationFrame(() => {
-    leaveBtn?.focus();
-  });
 }
 
 // ============================================
@@ -620,75 +400,47 @@ function clearStoryModeState(): void {
 }
 
 /**
- * Returns whether the artifact popover is currently visible
+ * Current ghost marker being processed in story mode
  */
-export function isPopoverVisible(): boolean {
-  return currentPopoverArtifact !== null || currentPopoverGhostMarker !== null;
-}
-
-// Focus trap handler reference
-let popoverFocusTrapHandler: ((e: KeyboardEvent) => void) | null = null;
+let currentStoryModeGhostMarker: GhostMarker | null = null;
 
 /**
- * Sets up focus trapping within the popover for keyboard navigation
+ * Shows story mode terminal for a ghost marker (collected artifact location)
  */
-function setupPopoverFocusTrap(
-  popover: HTMLElement,
-  takeBtn: HTMLButtonElement | null,
-  leaveBtn: HTMLButtonElement | null,
-  closeBtn: HTMLButtonElement | null
-): void {
-  const focusableElements = [takeBtn, leaveBtn, closeBtn].filter(
-    (el): el is HTMLButtonElement => el !== null
-  );
+function showGhostMarkerStoryMode(ghost: GhostMarker): void {
+  currentStoryModeGhostMarker = ghost;
 
-  if (focusableElements.length === 0) return;
-
-  popoverFocusTrapHandler = (e: KeyboardEvent) => {
-    // Handle Tab key for focus trapping
-    if (e.key === "Tab") {
-      const firstElement = focusableElements[0];
-      const lastElement = focusableElements[focusableElements.length - 1];
-      const activeElement = document.activeElement;
-
-      if (e.shiftKey) {
-        // Shift+Tab: go backwards
-        if (activeElement === firstElement) {
-          e.preventDefault();
-          lastElement.focus();
-        }
-      } else {
-        // Tab: go forwards
-        if (activeElement === lastElement) {
-          e.preventDefault();
-          firstElement.focus();
-        }
-      }
-    }
-
-    // Handle arrow keys for button navigation
-    if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
-      e.preventDefault();
-      const activeElement = document.activeElement;
-      const currentIndex = focusableElements.indexOf(
-        activeElement as HTMLButtonElement
-      );
-
-      if (currentIndex !== -1) {
-        let nextIndex: number;
-        if (e.key === "ArrowRight") {
-          nextIndex = (currentIndex + 1) % focusableElements.length;
-        } else {
-          nextIndex =
-            (currentIndex - 1 + focusableElements.length) %
-            focusableElements.length;
-        }
-        focusableElements[nextIndex].focus();
-      }
-    }
+  // Create a fake artifact for story mode display
+  const fakeArtifact: Artifact = {
+    id: ghost.id,
+    type: ghost.originalType,
+    sourceElement: document.createElement("div"), // Placeholder
+    iconElement: ghost.iconElement,
+    position: ghost.position,
+    size: { width: 16, height: 16 },
   };
 
-  popover.addEventListener("keydown", popoverFocusTrapHandler);
+  // Show as a "memory" - single choice, just continue
+  showStoryMode(
+    fakeArtifact,
+    ghost.originalContent,
+    false, // Not intro
+    `You remember collecting this ${ARTIFACT_TYPE_LABELS[
+      ghost.originalType
+    ].toLowerCase()} here.`,
+    undefined
+  );
+}
+
+/**
+ * Handle ghost marker leave (called when story mode closes for ghost)
+ */
+function handleGhostMarkerLeave(): void {
+  if (currentStoryModeGhostMarker) {
+    lastDismissedGhostMarkerId = currentStoryModeGhostMarker.id;
+    collisionCooldownUntil = Date.now() + COLLISION_COOLDOWN_MS;
+    currentStoryModeGhostMarker = null;
+  }
 }
 
 /**
@@ -802,9 +554,6 @@ function collectArtifact(
 
   // Update bag counter
   updateBagCounter();
-
-  // Hide popover
-  hideArtifactPopover();
 
   if (config.debug) {
     console.log("Artifact collected:", item);
@@ -935,20 +684,6 @@ function toggleItemExpanded(itemId: string): void {
 }
 
 // ============================================
-// Popover Element
-// ============================================
-
-function createPopoverElement(): HTMLDivElement {
-  const popover = createElement(
-    "div",
-    { id: POPOVER_ID, class: "at-popover" },
-    {}
-  );
-
-  return popover;
-}
-
-// ============================================
 // Artifact Click Handler
 // ============================================
 
@@ -966,12 +701,15 @@ function setupArtifactClickHandler(): void {
         const artifacts = getArtifactsFunc();
         const artifact = artifacts.find((a) => a.iconElement === target);
 
-        if (artifact && !currentPopoverArtifact) {
-          // Check if artifact is within the viewport before allowing interaction
+        if (artifact && !isStoryModeActive()) {
+          // Only allow clicking artifacts within the viewport
           if (isArtifactInViewport(artifact.iconElement)) {
-            showArtifactPopover(artifact);
-          } else if (config.debug) {
-            console.log("Artifact clicked but outside viewport, ignoring");
+            // Get artifact's screen position and move towards it
+            // Collision detection will trigger story mode when avatar reaches it
+            const rect = artifact.iconElement.getBoundingClientRect();
+            const artifactCenterX = rect.left + rect.width / 2;
+            const artifactCenterY = rect.top + rect.height / 2;
+            moveToPosition(artifactCenterX, artifactCenterY);
           }
         }
       }
@@ -1026,11 +764,9 @@ function setupKeyboardShortcuts(): void {
       toggleInventory();
     }
 
-    // Escape to close popover or inventory
+    // Escape to close inventory
     if (event.key === "Escape") {
-      if (currentPopoverArtifact) {
-        hideArtifactPopover(true); // User dismissed, enable cooldown
-      } else if (state.isOpen) {
+      if (state.isOpen) {
         closeInventory();
       }
     }

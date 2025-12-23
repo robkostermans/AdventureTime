@@ -1,15 +1,19 @@
 // Navigation indicator feature implementation
 // Shows a dot indicator pointing to the nearest direction artifact
+// Also handles click-to-move functionality within the viewport
 
 import { createElement, injectStyles } from "../../core/utils";
 import type { CleanupFunction } from "../../core/types";
 import type { Artifact } from "../interaction/types";
 import type { NavigationFeatureConfig } from "./types";
+import { moveToPosition, isInputPaused } from "../input";
+import { isStoryModeActive, handleStoryModeClick } from "../storymode";
 import navigationStyles from "./navigation.css?inline";
 
 let isInitialized = false;
 let config: NavigationFeatureConfig;
 let indicatorElement: HTMLDivElement | null = null;
+let clickIndicatorElement: HTMLDivElement | null = null;
 let cleanupFunctions: CleanupFunction[] = [];
 let animationFrameId: number | null = null;
 let getArtifactsFunc: (() => Artifact[]) | null = null;
@@ -19,6 +23,7 @@ let isMoving = false;
 
 const NAVIGATION_STYLES_ID = "adventure-time-navigation-styles";
 const INDICATOR_ID = "adventure-time-nav-indicator";
+const CLICK_INDICATOR_ID = "adventure-time-click-indicator";
 
 // Distance threshold for "near" state (triggers pulse animation)
 const NEAR_THRESHOLD = 100;
@@ -66,6 +71,21 @@ export function initNavigation(
     indicatorElement?.remove();
   });
 
+  // Create click indicator element
+  clickIndicatorElement = createElement(
+    "div",
+    { id: CLICK_INDICATOR_ID, class: "at-click-indicator" },
+    {}
+  );
+  document.body.appendChild(clickIndicatorElement);
+  cleanupFunctions.push(() => {
+    clickIndicatorElement?.remove();
+    clickIndicatorElement = null;
+  });
+
+  // Setup click-to-move handler
+  setupClickToMove();
+
   // Start update loop
   startUpdateLoop();
 
@@ -85,6 +105,7 @@ export function destroyNavigation(): void {
   cleanupFunctions.forEach((cleanup) => cleanup());
   cleanupFunctions = [];
   indicatorElement = null;
+  clickIndicatorElement = null;
   getArtifactsFunc = null;
   isMoving = false;
   isInitialized = false;
@@ -230,3 +251,111 @@ function updateIndicatorPosition(): void {
   }
 }
 
+// ============================================
+// Click-to-Move Functionality
+// ============================================
+
+/**
+ * Sets up click-to-move functionality within the viewport.
+ * Uses document-level click handler to ensure clicks are captured.
+ */
+function setupClickToMove(): void {
+  const handleClick = (e: MouseEvent) => {
+    // Only handle left clicks
+    if (e.button !== 0) return;
+    
+    // Get viewport element for bounds checking
+    const viewport = document.getElementById("adventure-time-viewport");
+    if (!viewport) return;
+    
+    const clickX = e.clientX;
+    const clickY = e.clientY;
+    
+    // Check if click is within the viewport bounds
+    const viewportRect = viewport.getBoundingClientRect();
+    const isInViewport = (
+      clickX >= viewportRect.left &&
+      clickX <= viewportRect.right &&
+      clickY >= viewportRect.top &&
+      clickY <= viewportRect.bottom
+    );
+    
+    if (!isInViewport) return;
+    
+    // Check if click is on a story mode option - let those pass through
+    const target = e.target as HTMLElement;
+    const isStoryOption = target.closest(".at-story-option") !== null;
+    
+    // If story mode is active, handle the click there first
+    if (isStoryModeActive()) {
+      // If clicking on a story option, let the story mode handle it directly
+      if (isStoryOption) {
+        return; // Don't interfere with option clicks
+      }
+      
+      const handled = handleStoryModeClick();
+      if (handled) {
+        // Story mode handled the click (dismissed single-choice or blocked multi-choice)
+        // Show indicator and start movement for single-choice dismissal
+        showClickIndicator(clickX, clickY);
+        // Movement will start after story mode resumes input
+        // Set a small delay to let story mode cleanup complete
+        setTimeout(() => {
+          if (!isInputPaused()) {
+            moveToPosition(clickX, clickY, () => {
+              hideClickIndicator();
+            });
+          }
+        }, 50);
+        return;
+      }
+    }
+    
+    // Don't handle clicks on artifacts (those trigger collision/story mode)
+    if (target.classList.contains("at-artifact")) {
+      // Still show indicator and move towards artifact
+      showClickIndicator(clickX, clickY);
+      moveToPosition(clickX, clickY, () => {
+        hideClickIndicator();
+      });
+      return;
+    }
+    
+    // Normal click-to-move
+    showClickIndicator(clickX, clickY);
+    moveToPosition(clickX, clickY, () => {
+      hideClickIndicator();
+    });
+  };
+
+  // Use document-level handler to catch all clicks
+  document.addEventListener("click", handleClick);
+  
+  cleanupFunctions.push(() => {
+    document.removeEventListener("click", handleClick);
+  });
+}
+
+/**
+ * Shows the click indicator at the specified screen position
+ */
+function showClickIndicator(x: number, y: number): void {
+  if (!clickIndicatorElement) return;
+  
+  clickIndicatorElement.style.left = `${x}px`;
+  clickIndicatorElement.style.top = `${y}px`;
+  clickIndicatorElement.classList.remove("at-click-indicator--active");
+  
+  // Force reflow to restart animation
+  void clickIndicatorElement.offsetWidth;
+  
+  clickIndicatorElement.classList.add("at-click-indicator--active");
+}
+
+/**
+ * Hides the click indicator
+ */
+function hideClickIndicator(): void {
+  if (!clickIndicatorElement) return;
+  clickIndicatorElement.classList.remove("at-click-indicator--active");
+}

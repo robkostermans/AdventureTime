@@ -5,7 +5,6 @@ export {
   destroyInventory,
   getInventoryItems,
   isInventoryOpen,
-  isPopoverVisible,
   toggleInventory,
   openInventory,
   closeInventory,

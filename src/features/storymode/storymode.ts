@@ -109,6 +109,34 @@ export function isStoryModeActive(): boolean {
 }
 
 /**
+ * Handle a click event during story mode.
+ * For single-choice artifacts (intro/direction), clicking dismisses immediately.
+ * For multi-choice artifacts, clicking is ignored (user must use options).
+ * @returns true if the click was handled (story mode is active and dismissed), false otherwise
+ */
+export function handleStoryModeClick(): boolean {
+  if (!state.isActive || !currentContent) return false;
+  
+  // During result phase, ignore clicks
+  if (state.phase === "result") return true; // Consume the click but don't do anything
+  
+  const { artifactType, isIntro } = currentContent;
+  const isDirection = artifactType === "direction";
+  const isSingleChoice = isIntro || isDirection;
+  
+  // For single-choice artifacts, clicking dismisses immediately (like pressing a movement key)
+  if (isSingleChoice && (state.phase === "choice" || state.phase === "discovery")) {
+    state.phase = "choice";
+    confirmChoice(true); // Immediate dismiss
+    return true;
+  }
+  
+  // For multi-choice artifacts, don't handle click (let user use the options)
+  // Return true to indicate story mode is active and click should not propagate
+  return true;
+}
+
+/**
  * Set callbacks for take/leave actions
  */
 export function setStoryModeCallbacks(
@@ -280,15 +308,40 @@ function renderTerminal(): void {
   if (state.phase === "choice") {
     const options = terminalElement.querySelectorAll(".at-story-option");
     options.forEach((option, index) => {
-      option.addEventListener("click", () => {
-        selectOption(index);
+      option.addEventListener("click", (e) => {
+        e.stopPropagation(); // Prevent navigation click handler from interfering
+        // Set selected index directly without re-rendering, then confirm
+        state.selectedOptionIndex = index;
         confirmChoice();
       });
       option.addEventListener("mouseenter", () => {
-        selectOption(index);
+        // Update visual selection without re-rendering (which would destroy click handlers)
+        selectOptionVisual(index, options);
       });
     });
   }
+}
+
+/**
+ * Updates the visual selection state without re-rendering the terminal.
+ * This preserves click handlers on the options.
+ */
+function selectOptionVisual(index: number, options: NodeListOf<Element>): void {
+  if (state.phase !== "choice") return;
+  
+  state.selectedOptionIndex = index;
+  
+  // Update visual state of all options
+  options.forEach((option, i) => {
+    const arrow = option.querySelector(".at-story-arrow");
+    if (i === index) {
+      option.classList.add("at-story-option--selected");
+      if (arrow) arrow.textContent = "▶";
+    } else {
+      option.classList.remove("at-story-option--selected");
+      if (arrow) arrow.textContent = "";
+    }
+  });
 }
 
 function renderOption(index: number, text: string, selected: boolean): string {

@@ -25,6 +25,11 @@ let cleanupFunctions: CleanupFunction[] = [];
 let velocity: Vector2D = { x: 0, y: 0 };
 let targetDirection: Vector2D = { x: 0, y: 0 };
 
+// Click-to-move state
+// Stores the world-relative offset from avatar to target (not screen position)
+let moveToTargetOffset: Vector2D | null = null;
+let moveToTargetCallback: (() => void) | null = null;
+
 export function initInput(featureConfig: InputFeatureConfig): void {
   if (isInitialized) {
     console.warn("Input already initialized");
@@ -68,6 +73,8 @@ export function destroyInput(): void {
   movementStopCallback = null;
   velocity = { x: 0, y: 0 };
   targetDirection = { x: 0, y: 0 };
+  moveToTargetOffset = null;
+  moveToTargetCallback = null;
   isInitialized = false;
 }
 
@@ -101,10 +108,12 @@ export function getSpeed(): number {
 export function pauseInput(): void {
   if (!isPaused) {
     isPaused = true;
-    // Reset input state, velocity, and trigger stop callback
+    // Reset input state, velocity, move-to-target, and trigger stop callback
     inputState = { up: false, down: false, left: false, right: false };
     velocity = { x: 0, y: 0 };
     targetDirection = { x: 0, y: 0 };
+    moveToTargetOffset = null;
+    moveToTargetCallback = null;
     if (previouslyMoving && movementStopCallback) {
       movementStopCallback();
     }
@@ -124,6 +133,46 @@ export function resumeInput(): void {
  */
 export function isInputPaused(): boolean {
   return isPaused;
+}
+
+/**
+ * Sets a target position to move towards (screen coordinates).
+ * The avatar will move towards this position until it reaches it or keyboard input overrides.
+ * @param screenX - Target X position on screen
+ * @param screenY - Target Y position on screen
+ * @param onReached - Optional callback when target is reached
+ */
+export function moveToPosition(screenX: number, screenY: number, onReached?: () => void): void {
+  if (isPaused) return;
+  
+  // Avatar is always at screen center
+  const avatarX = window.innerWidth / 2;
+  const avatarY = window.innerHeight / 2;
+  
+  // Calculate offset from avatar to target (in world-relative terms)
+  // This offset will be reduced as the avatar moves towards the target
+  const dx = screenX - avatarX;
+  const dy = screenY - avatarY;
+  
+  // Only set target if there's a meaningful distance
+  const distance = Math.sqrt(dx * dx + dy * dy);
+  if (distance > 5) {
+    // Store the offset from avatar to target
+    // As the world moves, we'll reduce this offset
+    moveToTargetOffset = { x: dx, y: dy };
+    moveToTargetCallback = onReached || null;
+  } else if (onReached) {
+    // Already at target
+    onReached();
+  }
+}
+
+/**
+ * Cancels any active move-to-position movement
+ */
+export function cancelMoveToPosition(): void {
+  moveToTargetOffset = null;
+  moveToTargetCallback = null;
 }
 
 function setupKeyboardListeners(): void {
@@ -222,7 +271,38 @@ function processInput(): void {
   if (inputState.up) dirY -= 1;
   if (inputState.down) dirY += 1;
 
-  const hasInput = dirX !== 0 || dirY !== 0;
+  const hasKeyboardInput = dirX !== 0 || dirY !== 0;
+  
+  // Keyboard input cancels move-to-target
+  if (hasKeyboardInput && moveToTargetOffset) {
+    moveToTargetOffset = null;
+    moveToTargetCallback = null;
+  }
+  
+  // Check for move-to-target if no keyboard input
+  let hasInput = hasKeyboardInput;
+  if (!hasKeyboardInput && moveToTargetOffset) {
+    // The offset represents how far we still need to travel
+    const dx = moveToTargetOffset.x;
+    const dy = moveToTargetOffset.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    
+    // Check if we've reached the target (within threshold)
+    if (distance < 10) {
+      // Reached target
+      const callback = moveToTargetCallback;
+      moveToTargetOffset = null;
+      moveToTargetCallback = null;
+      if (callback) {
+        callback();
+      }
+    } else {
+      // Move towards target
+      dirX = dx;
+      dirY = dy;
+      hasInput = true;
+    }
+  }
 
   // Normalize input direction for diagonal movement compensation
   if (hasInput) {
@@ -292,6 +372,13 @@ function processInput(): void {
       y: -velocity.y,
     };
     movementCallback(movement);
+    
+    // If moving towards a target, reduce the offset by the movement amount
+    // (velocity is in avatar direction, so we subtract it from the offset)
+    if (moveToTargetOffset) {
+      moveToTargetOffset.x -= velocity.x;
+      moveToTargetOffset.y -= velocity.y;
+    }
   }
 }
 

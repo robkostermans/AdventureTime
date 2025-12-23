@@ -12,6 +12,8 @@ export {
   pauseInput,
   resumeInput,
   isInputPaused,
+  moveToPosition,
+  cancelMoveToPosition,
 } from "./input";
 export type {
   InputFeatureConfig,
