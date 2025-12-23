@@ -50,11 +50,17 @@ export function initAvatar(featureConfig: AvatarFeatureConfig): void {
   // Create avatar element
   avatarElement = createAvatarElement();
   
-  // Set CSS variables for avatar customization
-  const borderRadius = config.shape === "circle" ? "50%" : "4px";
+  // Set CSS variables - size is always required, visual props only if provided
   avatarElement.style.setProperty("--at-avatar-size", `${config.size}px`);
-  avatarElement.style.setProperty("--at-avatar-color", config.color);
-  avatarElement.style.setProperty("--at-avatar-border-radius", borderRadius);
+  
+  // Only override CSS defaults if explicitly configured
+  if (config.color) {
+    avatarElement.style.setProperty("--at-avatar-color", config.color);
+  }
+  if (config.shape) {
+    const borderRadius = config.shape === "circle" ? "50%" : "4px";
+    avatarElement.style.setProperty("--at-avatar-border-radius", borderRadius);
+  }
   
   document.body.appendChild(avatarElement);
 

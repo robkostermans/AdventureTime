@@ -43,8 +43,10 @@ export function initWorld(featureConfig: WorldFeatureConfig): void {
   // Create world container that wraps the page content
   worldContainer = createWorldContainer();
   
-  // Set CSS variable for background color
-  worldContainer.style.setProperty("--at-world-bg", config.backgroundColor);
+  // Only override CSS default if explicitly configured
+  if (config.backgroundColor) {
+    worldContainer.style.setProperty("--at-world-bg", config.backgroundColor);
+  }
 
   // Move all body children into the world container
   wrapPageContent(worldContainer);

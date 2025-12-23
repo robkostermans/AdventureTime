@@ -49,11 +49,13 @@ export function initInteraction(
   // Create the interaction layer
   interactionLayer = createInteractionLayer();
 
-  // Set CSS variable for background color
-  interactionLayer.style.setProperty(
-    "--at-interaction-bg",
-    config.backgroundColor
-  );
+  // Only override CSS default if explicitly configured
+  if (config.backgroundColor) {
+    interactionLayer.style.setProperty(
+      "--at-interaction-bg",
+      config.backgroundColor
+    );
+  }
 
   // Add interaction layer to world container (between layer 1 and 2)
   worldContainer.appendChild(interactionLayer);

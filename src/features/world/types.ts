@@ -4,7 +4,8 @@ import type { FeatureConfig, Vector2D } from "../../core/types";
 
 export interface WorldFeatureConfig extends FeatureConfig {
   viewportSize: number; // Viewport size for calculating boundaries
-  backgroundColor: string; // Extended border background color
+  // Optional visual properties (CSS defaults used if not provided)
+  backgroundColor?: string; // Extended border background color (default: #1a1a2e)
 }
 
 export interface WorldBounds {

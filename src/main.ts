@@ -20,22 +20,26 @@ import type { AppConfig } from "./core/types";
   (window as any).__ADVENTURE_TIME_LOADED__ = true;
 
   // Application configuration
+  // Visual styling (colors, shapes) is defined in CSS files - see src/features/*/[feature].css
+  // Only behavioral/functional settings are configured here
   const config: AppConfig = {
     debug: true, // Set to false for production
     viewport: {
       size: 400, // 400x400 pixel viewport
     },
     avatar: {
-      size: 32, // 32px avatar
-      color: "#4CAF50", // Green avatar
-      shape: "circle", // Circle shape
+      size: 32, // 32px avatar (used for collision detection)
       // Movement feedback settings
       maxOffset: 32, // Avatar moves up to 32px from center at full speed
       offsetSmoothing: 0.12, // Smooth return to center (lower = smoother)
       rotationEnabled: true, // Avatar rotates to face movement direction
+      // Optional: override CSS defaults for visual customization
+      // color: "#4CAF50",
+      // shape: "circle",
     },
     world: {
-      backgroundColor: "#1a1a2e", // Dark background for extended borders
+      // Optional: override CSS defaults for visual customization
+      // backgroundColor: "#1a1a2e",
     },
     movement: {
       speed: 5, // Maximum speed in pixels per frame
@@ -44,7 +48,8 @@ import type { AppConfig } from "./core/types";
     },
     interaction: {
       enabled: true, // Enable interaction layer
-      backgroundColor: "rgba(0, 0, 50, 0.1)", // Slight blue tint for dev visibility
+      // Optional: override CSS defaults for visual customization
+      // backgroundColor: "rgba(0, 0, 50, 0.1)",
     },
     inventory: {
       enabled: true, // Enable inventory system

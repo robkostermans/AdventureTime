@@ -3,7 +3,8 @@
 import type { FeatureConfig } from "../../core/types";
 
 export interface InteractionFeatureConfig extends FeatureConfig {
-  backgroundColor: string; // Semi-transparent background color for dev visibility
+  // Optional visual properties (CSS defaults used if not provided)
+  backgroundColor?: string; // Semi-transparent background color for dev visibility (default: transparent)
 }
 
 /**

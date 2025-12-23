@@ -20,17 +20,19 @@ export interface ViewportConfig {
 }
 
 export interface AvatarConfig {
-  size: number; // Avatar size in pixels
-  color: string; // Avatar color
-  shape: "circle" | "square"; // Avatar shape
+  size: number; // Avatar size in pixels (required for collision detection)
   // Movement feedback settings
   maxOffset: number; // Maximum offset from center when moving (pixels)
   offsetSmoothing: number; // How quickly avatar returns to center (0-1, lower = smoother)
   rotationEnabled: boolean; // Whether avatar rotates in movement direction
+  // Optional visual properties (CSS defaults used if not provided)
+  color?: string; // Avatar color (default: #4CAF50)
+  shape?: "circle" | "square"; // Avatar shape (default: circle)
 }
 
 export interface WorldConfig {
-  backgroundColor: string; // Extended border background color
+  // Optional visual properties (CSS defaults used if not provided)
+  backgroundColor?: string; // Extended border background color (default: #1a1a2e)
 }
 
 export interface MovementConfig {
@@ -41,7 +43,8 @@ export interface MovementConfig {
 
 export interface InteractionConfig {
   enabled: boolean; // Whether interaction layer is enabled
-  backgroundColor: string; // Semi-transparent background for dev visibility
+  // Optional visual properties (CSS defaults used if not provided)
+  backgroundColor?: string; // Semi-transparent background for dev visibility (default: transparent)
 }
 
 export interface InventoryConfig {
