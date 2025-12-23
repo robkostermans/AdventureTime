@@ -232,6 +232,29 @@ Layer 1:           World Container (moves)
 Layer 0 (Bottom):  Extended Background
 ```
 
+### Starting Position
+
+When the game initializes, the world is positioned so that the avatar starts at a meaningful location:
+
+1. **First Direction Artifact**: If any direction artifacts (🪧 from `<h1>`-`<h6>` headers) exist on the page, the world is positioned to center the avatar on the **first** direction artifact (sorted by document position: top-to-bottom, then left-to-right).
+
+2. **Page Center Fallback**: If no direction artifacts exist, the world is positioned to center on the **middle of the page content**.
+
+This ensures players start at a logical entry point (typically a main heading) rather than an arbitrary corner of the page.
+
+```
+With Direction Artifact:          Without Direction Artifact:
+┌─────────────────────┐           ┌─────────────────────┐
+│     Extended        │           │     Extended        │
+│   ┌───────────┐     │           │   ┌───────────┐     │
+│   │   🪧 ◉    │     │           │   │           │     │
+│   │ (h1 here) │     │           │   │     ◉     │     │
+│   │           │     │           │   │  (center) │     │
+│   └───────────┘     │           │   └───────────┘     │
+│                     │           │                     │
+└─────────────────────┘           └─────────────────────┘
+```
+
 ---
 
 ## Technical Architecture

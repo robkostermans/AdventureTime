@@ -176,6 +176,13 @@ export function getGhostMarkers(): GhostMarker[] {
 }
 
 /**
+ * Returns the intro configuration if enabled
+ */
+export function getIntroConfig() {
+  return config.intro;
+}
+
+/**
  * Updates artifact interactivity based on whether they're within the viewport.
  * Should be called on each frame or when the world moves.
  */
@@ -246,6 +253,9 @@ function scanForArtifacts(worldContainer: HTMLElement): void {
     (a, b) => ARTIFACT_PRIORITY[b] - ARTIFACT_PRIORITY[a]
   );
 
+  // Track if we've found the first direction artifact (for intro)
+  let firstDirectionFound = false;
+
   // Process each artifact type in priority order
   for (const artifactType of sortedTypes) {
     const selector = ARTIFACT_SELECTORS[artifactType];
@@ -281,6 +291,21 @@ function scanForArtifacts(worldContainer: HTMLElement): void {
       // Create artifact for this element
       const artifact = createArtifact(element, artifactType);
       if (artifact) {
+        // Mark first direction artifact as intro if intro is enabled
+        if (
+          artifactType === "direction" &&
+          !firstDirectionFound &&
+          config.intro?.enabled
+        ) {
+          artifact.isIntro = true;
+          firstDirectionFound = true;
+
+          // Update icon to intro icon
+          const introIcon = config.intro.icon || "🎪";
+          artifact.iconElement.textContent = introIcon;
+          artifact.iconElement.classList.add("at-artifact-intro");
+        }
+
         artifacts.push(artifact);
         interactionLayer!.appendChild(artifact.iconElement);
 

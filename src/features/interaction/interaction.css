@@ -85,6 +85,26 @@
   font-size: 24px; /* Standard artifact size */
 }
 
+/* Intro artifact - special styling for the first direction artifact */
+.at-artifact-intro {
+  font-size: 56px; /* Larger than h1 */
+  //animation: at-intro-pulse 2s ease-in-out infinite;
+}
+
+@keyframes at-intro-pulse {
+  0%,
+  100% {
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3))
+      drop-shadow(0 0 8px rgba(255, 200, 100, 0.4));
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.4))
+      drop-shadow(0 0 16px rgba(255, 200, 100, 0.7));
+    transform: translate(-50%, -50%) scale(1.1);
+  }
+}
+
 @keyframes at-gold-shine {
   0%,
   100% {

@@ -134,13 +134,59 @@ A 20px padding is applied to prevent icons from overlapping element edges, ensur
 ```typescript
 interaction: {
   enabled: true,                        // Enable/disable the layer
-  backgroundColor: "rgba(0, 0, 50, 0.1)" // Semi-transparent tint for dev
+  backgroundColor: "rgba(0, 0, 50, 0.1)", // Semi-transparent tint for dev
+  intro: {
+    enabled: true,                      // Enable intro on first direction artifact
+    icon: "🎪",                         // Custom icon (default: 🎪)
+    title: "Welcome!",                  // Custom title (default: "Welcome!")
+    text: "Your adventure begins here!" // Custom intro text
+  }
 }
 ```
 
 ### Background Color
 
 The `backgroundColor` provides a slight tint over the world content for development/debugging purposes. This can be set to `transparent` for production or adjusted via CSS.
+
+---
+
+## Intro Feature
+
+The first direction artifact (🪧) can be configured as a special "intro" artifact that welcomes the player to the game.
+
+### Intro Configuration
+
+| Property | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `enabled` | boolean | Yes | - | Enable/disable intro feature |
+| `icon` | string | No | 🎪 | Custom icon for intro artifact |
+| `title` | string | No | "Welcome!" | Title shown in popover header |
+| `text` | string | Yes | - | Intro message displayed in popover |
+
+### Visual Differences
+
+When intro is enabled, the first direction artifact:
+
+1. **Custom Icon** - Uses the configured icon (default: 🎪 tent) instead of 🪧
+2. **Larger Size** - 56px font size (larger than h1's 48px)
+3. **Pulsing Animation** - Warm golden glow that pulses to attract attention
+4. **Custom Popover** - Shows intro text instead of header content
+5. **"Start" Button** - Button says "Start" instead of "Leave"
+
+```
+Normal Direction:          Intro Direction:
+    🪧 (24-48px)               🎪 (56px, pulsing)
+    ↓                          ↓
+┌─────────────┐          ┌─────────────┐
+│ Sign        │          │ Welcome!    │
+│ Header text │          │ Intro text  │
+│ [Leave]     │          │ [Start]     │
+└─────────────┘          └─────────────┘
+```
+
+### Starting Position
+
+The game automatically starts centered on the first direction artifact (which is the intro artifact when enabled). This ensures players see the welcome message immediately upon starting.
 
 ---
 

@@ -5,7 +5,11 @@ import type { CleanupFunction } from "../../core/types";
 import type { Artifact } from "../interaction/types";
 import { ARTIFACT_ICONS } from "../interaction/types";
 import type { GhostMarker } from "../interaction/types";
-import { createGhostMarker, getGhostMarkers } from "../interaction";
+import {
+  createGhostMarker,
+  getGhostMarkers,
+  getIntroConfig,
+} from "../interaction";
 import { pauseInput, resumeInput } from "../input";
 import type {
   InventoryFeatureConfig,
@@ -307,17 +311,38 @@ function showArtifactPopover(artifact: Artifact): void {
 
   currentPopoverArtifact = artifact;
 
+  // Check if this is an intro artifact
+  const isIntro = artifact.isIntro === true;
+  const introConfig = isIntro ? getIntroConfig() : null;
+
   // Extract original content - use outerHTML for void elements like <img>
-  const originalContent = getElementContent(artifact.sourceElement);
+  // For intro artifacts, show the original header content above the intro text
+  let originalContent: string;
+  if (isIntro && introConfig?.text) {
+    const headerContent = getElementContent(artifact.sourceElement);
+    originalContent = `<div class="at-intro-header">${headerContent}</div><p class="at-intro-text">${introConfig.text}</p>`;
+  } else {
+    originalContent = getElementContent(artifact.sourceElement);
+  }
   const originalHref = artifact.sourceElement.getAttribute("href") || undefined;
 
   // Build popover content
-  const icon = ARTIFACT_ICONS[artifact.type];
-  const label = ARTIFACT_TYPE_LABELS[artifact.type];
+  // For intro, use custom icon and title from config
+  const icon =
+    isIntro && introConfig?.icon
+      ? introConfig.icon
+      : ARTIFACT_ICONS[artifact.type];
+  const label =
+    isIntro && introConfig?.title
+      ? introConfig.title
+      : ARTIFACT_TYPE_LABELS[artifact.type];
   const actionLabel = ARTIFACT_ACTION_LABELS[artifact.type];
   const isPortal = artifact.type === "portal";
   const isDirection = artifact.type === "direction";
   const hasAction = actionLabel !== null;
+
+  // For intro artifacts, the button should say "Start" instead of "Leave"
+  const leaveButtonLabel = isIntro ? "Start" : "Leave";
 
   popoverElement.innerHTML = `
     <div class="at-popover-header">
@@ -326,7 +351,9 @@ function showArtifactPopover(artifact: Artifact): void {
       <button class="at-popover-close" tabindex="0" data-action="close" aria-label="Close">✕</button>
     </div>
     <div class="at-popover-content">
-      <div class="at-popover-preview">${originalContent}</div>
+      <div class="at-popover-preview${
+        isIntro ? " at-popover-preview--intro" : ""
+      }">${originalContent}</div>
     </div>
     <div class="at-popover-actions">
       ${
@@ -336,7 +363,7 @@ function showArtifactPopover(artifact: Artifact): void {
       }
       <button class="at-popover-btn ${
         hasAction ? "at-popover-btn--secondary" : "at-popover-btn--primary"
-      }" tabindex="0" data-action="leave">Leave</button>
+      }" tabindex="0" data-action="leave">${leaveButtonLabel}</button>
     </div>
   `;
 
@@ -378,7 +405,7 @@ function showArtifactPopover(artifact: Artifact): void {
   // Pause movement input while popover is open
   pauseInput();
 
-  // Focus the primary action button (Take/Travel for most, Leave for direction)
+  // Focus the primary action button (Take/Travel for most, Leave/Start for direction)
   requestAnimationFrame(() => {
     if (hasAction && takeBtn) {
       takeBtn.focus();

@@ -1,10 +1,12 @@
 // Interaction layer feature types
 
-import type { FeatureConfig } from "../../core/types";
+import type { FeatureConfig, IntroConfig } from "../../core/types";
 
 export interface InteractionFeatureConfig extends FeatureConfig {
   // Optional visual properties (CSS defaults used if not provided)
   backgroundColor?: string; // Semi-transparent background color for dev visibility (default: transparent)
+  // Intro configuration
+  intro?: IntroConfig;
 }
 
 /**
@@ -41,6 +43,8 @@ export interface Artifact {
   iconElement: HTMLDivElement;
   position: { x: number; y: number };
   size: { width: number; height: number };
+  // Special flags
+  isIntro?: boolean; // True if this is the intro artifact (first direction)
 }
 
 /**

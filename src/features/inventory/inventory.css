@@ -279,6 +279,29 @@
   line-height: 1.6;
 }
 
+/* Intro artifact preview styling */
+.at-popover-preview--intro {
+  text-align: center;
+  padding: 8px 0;
+}
+
+.at-popover-preview--intro .at-intro-header {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #eee;
+}
+
+.at-popover-preview--intro .at-intro-text {
+  font-size: 15px;
+  font-style: italic;
+  color: #4a4a4a;
+  line-height: 1.7;
+  margin: 0;
+}
+
 /* Reset any inherited restrictions on preview content */
 .at-popover-preview * {
   pointer-events: auto !important;

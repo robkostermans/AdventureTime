@@ -50,6 +50,13 @@ import type { AppConfig } from "./core/types";
       enabled: true, // Enable interaction layer
       // Optional: override CSS defaults for visual customization
       // backgroundColor: "rgba(0, 0, 50, 0.1)",
+      // Intro configuration - shown on first direction artifact
+      intro: {
+        enabled: true,
+        icon: "🎪", // Festive tent icon
+        title: "Welcome!",
+        text: "There lays before you a vast landscape of knowledge and treasures to find. Go on and explore!",
+      },
     },
     inventory: {
       enabled: true, // Enable inventory system
@@ -57,6 +64,14 @@ import type { AppConfig } from "./core/types";
     },
     design: {
       enabled: true, // Enable design layer with decorative blobs
+    },
+    navigation: {
+      enabled: true, // Enable navigation indicator pointing to nearest direction artifact
+      indicatorDistance: 100, // Distance from avatar center (pixels)
+      showWhenStill: false, // false = show when moving (default), true = show when standing still
+      // Optional: override CSS defaults for visual customization
+      // indicatorSize: 8,
+      // indicatorColor: "#FFD700",
     },
   };
 

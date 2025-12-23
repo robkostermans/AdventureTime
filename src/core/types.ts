@@ -9,6 +9,7 @@ export interface AppConfig {
   interaction: InteractionConfig;
   inventory: InventoryConfig;
   design: DesignConfig;
+  navigation?: NavigationConfig; // Optional navigation indicator feature
 }
 
 export interface DesignConfig {
@@ -45,11 +46,31 @@ export interface InteractionConfig {
   enabled: boolean; // Whether interaction layer is enabled
   // Optional visual properties (CSS defaults used if not provided)
   backgroundColor?: string; // Semi-transparent background for dev visibility (default: transparent)
+  // Intro configuration for the first direction artifact
+  intro?: IntroConfig;
+}
+
+export interface IntroConfig {
+  enabled: boolean; // Whether to show intro on first direction artifact
+  icon?: string; // Custom icon for intro (default: 🎪)
+  title?: string; // Custom title (default: "Welcome!")
+  text: string; // Intro text to display in the popover
 }
 
 export interface InventoryConfig {
   enabled: boolean; // Whether inventory system is enabled
   collisionRadius: number; // Extra collision radius around avatar
+}
+
+export interface NavigationConfig {
+  enabled: boolean; // Whether navigation indicator is enabled
+  indicatorDistance: number; // Distance from avatar center to indicator (in pixels)
+  // Show indicator only when standing still (inverted behavior)
+  // Default: false (show when moving, hide when still)
+  showWhenStill?: boolean;
+  // Optional visual properties (CSS defaults used if not provided)
+  indicatorSize?: number; // Size of the indicator dot (default: 8px)
+  indicatorColor?: string; // Color of the indicator (default: #FFD700 gold)
 }
 
 export interface Vector2D {
