@@ -430,10 +430,19 @@ function createArtifact(
   const posY = rect.top + scrollTop + padding + randomOffsetY;
 
   // Create the icon element
+  let artifactClass = `at-artifact at-artifact-${type}`;
+
+  // For direction artifacts, add header level class for size scaling
+  if (type === "direction") {
+    const tagName = element.tagName.toLowerCase();
+    const headerLevel = tagName.match(/^h([1-6])$/)?.[1] || "4";
+    artifactClass += ` at-artifact-direction-h${headerLevel}`;
+  }
+
   const iconElement = createElement(
     "div",
     {
-      class: `at-artifact at-artifact-${type}`,
+      class: artifactClass,
       "data-artifact-type": type,
     },
     {}
@@ -500,7 +509,6 @@ function getInteractionStyles(backgroundColor: string): string {
     /* Artifact type specific styles */
     .at-artifact-portal {
       font-size: 28px;
-      animation: at-portal-pulse 2s ease-in-out infinite;
     }
 
     .at-artifact-gold {
@@ -521,13 +529,28 @@ function getInteractionStyles(backgroundColor: string): string {
       font-size: 22px;
     }
 
+    /* Direction artifact sizes scale with header level */
+    /* Base artifact size is 24px, h1 is 2x (48px), h4+ is standard (24px) */
     .at-artifact-direction {
-      font-size: 36px;
+      font-size: 24px; /* Default/fallback */
     }
 
-    @keyframes at-portal-pulse {
-      0%, 100% { transform: translate(-50%, -50%) rotate(0deg); }
-      50% { transform: translate(-50%, -50%) rotate(180deg); }
+    .at-artifact-direction-h1 {
+      font-size: 48px; /* 2x base size */
+    }
+
+    .at-artifact-direction-h2 {
+      font-size: 40px; /* ~1.67x base size */
+    }
+
+    .at-artifact-direction-h3 {
+      font-size: 32px; /* ~1.33x base size */
+    }
+
+    .at-artifact-direction-h4,
+    .at-artifact-direction-h5,
+    .at-artifact-direction-h6 {
+      font-size: 24px; /* Standard artifact size */
     }
 
     @keyframes at-gold-shine {
