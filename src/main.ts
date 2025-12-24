@@ -25,7 +25,8 @@ import type { AppConfig } from "./core/types";
   const config: AppConfig = {
     debug: true, // Set to false for production
     viewport: {
-      size: 400, // 400x400 pixel viewport
+      maxWidth: 390, // iPhone 14 width - responsive: full screen on mobile, constrained on desktop
+      maxHeight: 844, // iPhone 14 height
     },
     avatar: {
       size: 32, // 32px avatar (used for collision detection)
@@ -40,6 +41,7 @@ import type { AppConfig } from "./core/types";
     world: {
       // Optional: override CSS defaults for visual customization
       // backgroundColor: "#1a1a2e",
+      abyssBackgroundColor: "#000",
     },
     movement: {
       speed: 5, // Maximum speed in pixels per frame

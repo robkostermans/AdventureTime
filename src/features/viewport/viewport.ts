@@ -32,8 +32,9 @@ export function initViewport(featureConfig: ViewportFeatureConfig): void {
   // Create viewport elements
   elements = createViewportElements();
   
-  // Set CSS variable for viewport size
-  elements.container.style.setProperty("--at-viewport-size", `${config.size}px`);
+  // Set CSS variables for viewport max dimensions
+  elements.container.style.setProperty("--at-viewport-max-width", `${config.maxWidth}px`);
+  elements.container.style.setProperty("--at-viewport-max-height", `${config.maxHeight}px`);
   
   document.body.appendChild(elements.container);
 
@@ -61,6 +62,23 @@ export function getViewportElement(): HTMLDivElement | null {
 
 export function getViewportContainer(): HTMLDivElement | null {
   return elements?.container ?? null;
+}
+
+/**
+ * Returns the current viewport dimensions.
+ * On mobile (smaller than max dimensions), returns actual screen size.
+ * On larger screens, returns the max dimensions from config.
+ */
+export function getViewportDimensions(): { width: number; height: number } {
+  if (!config) {
+    return { width: 390, height: 844 }; // Default iPhone 14 dimensions
+  }
+  
+  // Calculate actual viewport size (respecting max constraints)
+  const width = Math.min(window.innerWidth, config.maxWidth);
+  const height = Math.min(window.innerHeight, config.maxHeight);
+  
+  return { width, height };
 }
 
 function createViewportElements(): ViewportElements {

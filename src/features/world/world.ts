@@ -28,7 +28,7 @@ export function initWorld(featureConfig: WorldFeatureConfig): void {
   }
 
   // Calculate world bounds based on viewport and page size
-  const bounds = calculateWorldBounds(config.viewportSize);
+  const bounds = calculateWorldBounds();
 
   // Initialize world state at center
   worldState = {
@@ -42,7 +42,7 @@ export function initWorld(featureConfig: WorldFeatureConfig): void {
 
   // Create world container that wraps the page content
   worldContainer = createWorldContainer();
-  
+
   // Only override CSS default if explicitly configured
   if (config.backgroundColor) {
     worldContainer.style.setProperty("--at-world-bg", config.backgroundColor);
@@ -122,8 +122,16 @@ export function setWorldPosition(position: Vector2D): void {
     return;
   }
 
-  const clampedX = clamp(position.x, worldState.bounds.minX, worldState.bounds.maxX);
-  const clampedY = clamp(position.y, worldState.bounds.minY, worldState.bounds.maxY);
+  const clampedX = clamp(
+    position.x,
+    worldState.bounds.minX,
+    worldState.bounds.maxX
+  );
+  const clampedY = clamp(
+    position.y,
+    worldState.bounds.minY,
+    worldState.bounds.maxY
+  );
 
   worldState.position.x = clampedX;
   worldState.position.y = clampedY;
@@ -131,7 +139,11 @@ export function setWorldPosition(position: Vector2D): void {
   worldContainer.style.transform = `translate(${clampedX}px, ${clampedY}px)`;
 }
 
-function calculateWorldBounds(viewportSize: number): WorldBounds {
+/**
+ * Calculates world bounds based on current viewport size.
+ * Viewport is responsive: full screen on mobile, constrained on larger screens.
+ */
+function calculateWorldBounds(): WorldBounds {
   const screenWidth = window.innerWidth;
   const screenHeight = window.innerHeight;
 
@@ -147,18 +159,29 @@ function calculateWorldBounds(viewportSize: number): WorldBounds {
     screenHeight
   );
 
+  // Get actual viewport dimensions (responsive)
+  const viewportElement = document.getElementById("adventure-time-viewport");
+  let viewportWidth = screenWidth;
+  let viewportHeight = screenHeight;
+
+  if (viewportElement) {
+    const rect = viewportElement.getBoundingClientRect();
+    viewportWidth = rect.width;
+    viewportHeight = rect.height;
+  }
+
   // Calculate extended border (space from viewport edge to screen edge)
-  const extendedBorderX = (screenWidth - viewportSize) / 2;
-  const extendedBorderY = (screenHeight - viewportSize) / 2;
+  const extendedBorderX = (screenWidth - viewportWidth) / 2;
+  const extendedBorderY = (screenHeight - viewportHeight) / 2;
 
   // World can move such that avatar (center) can reach all corners
   // When world position is 0,0 the avatar is at the top-left of the page
   // Max movement allows avatar to reach bottom-right
   return {
-    minX: -(pageWidth - viewportSize / 2 - extendedBorderX),
-    maxX: extendedBorderX + viewportSize / 2,
-    minY: -(pageHeight - viewportSize / 2 - extendedBorderY),
-    maxY: extendedBorderY + viewportSize / 2,
+    minX: -(pageWidth - viewportWidth / 2 - extendedBorderX),
+    maxX: extendedBorderX + viewportWidth / 2,
+    minY: -(pageHeight - viewportHeight / 2 - extendedBorderY),
+    maxY: extendedBorderY + viewportHeight / 2,
   };
 }
 
@@ -178,10 +201,7 @@ function wrapPageContent(container: HTMLDivElement): void {
   const originalPosition = document.body.style.position;
 
   // Prevent scrolling on the body
-  document.body.style.overflow = "hidden";
-  document.body.style.position = "fixed";
-  document.body.style.width = "100%";
-  document.body.style.height = "100%";
+  document.body.classList.add("at-world-body");
 
   // Move all children to the world container
   const children = Array.from(document.body.children);
@@ -221,5 +241,3 @@ function unwrapPageContent(container: HTMLDivElement): void {
   // Remove the container
   container.remove();
 }
-
-

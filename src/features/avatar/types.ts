@@ -4,7 +4,6 @@ import type { FeatureConfig, Vector2D } from "../../core/types";
 
 export interface AvatarFeatureConfig extends FeatureConfig {
   size: number; // Avatar size in pixels (required for collision detection)
-  viewportSize: number; // Parent viewport size (to center avatar)
   // Movement feedback settings
   maxOffset: number; // Maximum offset from center when moving (pixels)
   offsetSmoothing: number; // How quickly avatar returns to center (0-1, lower = smoother)

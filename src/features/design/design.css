@@ -9,7 +9,6 @@
   pointer-events: none;
   z-index: 5; /* Below interaction layer (z-index: 10) */
   overflow: visible;
-  background-color: #fff;
 }
 
 .at-design-svg {

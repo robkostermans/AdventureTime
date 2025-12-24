@@ -23,7 +23,8 @@ export interface DesignConfig {
 }
 
 export interface ViewportConfig {
-  size: number; // Square viewport size (default 400)
+  maxWidth: number; // Maximum viewport width (default 390 - iPhone 14 width)
+  maxHeight: number; // Maximum viewport height (default 844 - iPhone 14 height)
 }
 
 export interface AvatarConfig {
@@ -40,6 +41,7 @@ export interface AvatarConfig {
 export interface WorldConfig {
   // Optional visual properties (CSS defaults used if not provided)
   backgroundColor?: string; // Extended border background color (default: #1a1a2e)
+  abyssBackgroundColor?: string; // Background color of the abyss (default: #000)
 }
 
 export interface MovementConfig {

@@ -48,7 +48,6 @@ export async function initFeatures(
     initWorld({
       enabled: true,
       debug: config.debug,
-      viewportSize: config.viewport.size,
       backgroundColor: config.world.backgroundColor,
     });
     cleanupFunctions.push(destroyWorld);
@@ -112,13 +111,14 @@ export async function initFeatures(
     initViewport({
       enabled: true,
       debug: config.debug,
-      size: config.viewport.size,
+      maxWidth: config.viewport.maxWidth,
+      maxHeight: config.viewport.maxHeight,
     });
     cleanupFunctions.push(destroyViewport);
 
     // Set starting position: center on first direction artifact, or page center
     if (config.interaction.enabled) {
-      setStartingPosition(config.viewport.size);
+      setStartingPosition();
     }
 
     // Set initial artifact viewport states (after viewport is created)
@@ -133,7 +133,6 @@ export async function initFeatures(
       size: config.avatar.size,
       color: config.avatar.color,
       shape: config.avatar.shape,
-      viewportSize: config.viewport.size,
       maxOffset: config.avatar.maxOffset,
       offsetSmoothing: config.avatar.offsetSmoothing,
       rotationEnabled: config.avatar.rotationEnabled,
@@ -219,7 +218,7 @@ export function destroyFeatures(): void {
  * Note: Artifacts are positioned randomly within their source element, so we use the
  * icon element's position (not the source element) to ensure the artifact is in view.
  */
-function setStartingPosition(viewportSize: number): void {
+function setStartingPosition(): void {
   const artifacts = getArtifacts();
   const directionArtifacts = artifacts.filter((a) => a.type === "direction");
 
