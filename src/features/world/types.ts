@@ -17,4 +17,5 @@ export interface WorldBounds {
 export interface WorldState {
   position: Vector2D; // Current world offset (inverted from avatar position)
   bounds: WorldBounds; // World movement boundaries
+  avatarMapPosition: Vector2D; // Avatar's position in map/page coordinates (for resize compensation)
 }

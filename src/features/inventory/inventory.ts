@@ -429,6 +429,13 @@ function handleStoryModeTake(artifactId: string): void {
  * Handle "Leave" action from story mode
  */
 function handleStoryModeLeave(artifactId: string): void {
+  // Check if this is a ghost marker
+  if (currentStoryModeGhostMarker && currentStoryModeGhostMarker.id === artifactId) {
+    handleGhostMarkerLeave();
+    return;
+  }
+
+  // Check if this is a regular artifact
   if (!currentStoryModeArtifact || currentStoryModeArtifact.id !== artifactId) {
     return;
   }

@@ -25,8 +25,8 @@ import type { AppConfig } from "./core/types";
   const config: AppConfig = {
     debug: true, // Set to false for production
     viewport: {
-      maxWidth: 390, // iPhone 14 width - responsive: full screen on mobile, constrained on desktop
-      maxHeight: 844, // iPhone 14 height
+      sizePercent: 50, //  % of screen size on desktop (maintains window aspect ratio)
+      mobileBreakpoint: 768, // Full screen below this width (tablets and phones)
     },
     avatar: {
       size: 32, // 32px avatar (used for collision detection)

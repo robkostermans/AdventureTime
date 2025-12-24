@@ -119,21 +119,24 @@ export function isStoryModeActive(): boolean {
  */
 export function handleStoryModeClick(): boolean {
   if (!state.isActive || !currentContent) return false;
-  
+
   // During result phase, ignore clicks
   if (state.phase === "result") return true; // Consume the click but don't do anything
-  
+
   const { artifactType, isIntro } = currentContent;
   const isDirection = artifactType === "direction";
   const isSingleChoice = isIntro || isDirection;
-  
+
   // For single-choice artifacts, clicking dismisses immediately (like pressing a movement key)
-  if (isSingleChoice && (state.phase === "choice" || state.phase === "discovery")) {
+  if (
+    isSingleChoice &&
+    (state.phase === "choice" || state.phase === "discovery")
+  ) {
     state.phase = "choice";
     confirmChoice(true); // Immediate dismiss
     return true;
   }
-  
+
   // For multi-choice artifacts, don't handle click (let user use the options)
   // Return true to indicate story mode is active and click should not propagate
   return true;
@@ -174,7 +177,11 @@ export function showStoryMode(
   currentContent = {
     artifactId: artifact.id,
     artifactType: artifact.type,
-    icon: isGhostMarker ? "⭐" : (artifact.isIntro ? "🎪" : ARTIFACT_ICONS[artifact.type]),
+    icon: isGhostMarker
+      ? "⭐"
+      : artifact.isIntro
+      ? "🎪"
+      : ARTIFACT_ICONS[artifact.type],
     typeName: STORY_TYPE_LABELS[artifact.type],
     content,
     isIntro,
@@ -236,11 +243,7 @@ export function hideStoryMode(): void {
 }
 
 function createTerminalElement(): HTMLDivElement {
-  const terminal = createElement(
-    "div",
-    { class: "at-story-terminal" },
-    {}
-  );
+  const terminal = createElement("div", { class: "at-story-terminal" }, {});
 
   return terminal;
 }
@@ -248,7 +251,15 @@ function createTerminalElement(): HTMLDivElement {
 function renderTerminal(): void {
   if (!terminalElement || !currentContent) return;
 
-  const { artifactType, icon, typeName, content, isIntro, introText, isGhostMarker } = currentContent;
+  const {
+    artifactType,
+    icon,
+    typeName,
+    content,
+    isIntro,
+    introText,
+    isGhostMarker,
+  } = currentContent;
   const isDirection = artifactType === "direction";
   const isPortal = artifactType === "portal";
   const isSingleChoice = isIntro || isDirection;
@@ -259,7 +270,7 @@ function renderTerminal(): void {
   if (isGhostMarker) {
     html += `<p class="at-story-line at-story-line--discovery">You found a <span class="at-story-icon">${icon}</span> ${typeName} here containing:</p>`;
   } else if (isIntro) {
-    html += `<p class="at-story-line at-story-line--discovery">You have arrived at a <span class="at-story-icon">${icon}</span> welcome marker...</p>`;
+    html += `<p class="at-story-line at-story-line--discovery">You have arrived at a <span class="at-story-icon">${icon}</span></p>`;
   } else {
     html += `<p class="at-story-line at-story-line--discovery">You have found a <span class="at-story-icon">${icon}</span> ${typeName} containing:</p>`;
   }
@@ -268,7 +279,9 @@ function renderTerminal(): void {
   const contentHtml = renderContentLine(content);
   if (isIntro && introText) {
     html += contentHtml;
-    html += `<p class="at-story-line at-story-line--content">${escapeHtml(introText)}</p>`;
+    html += `<p class="at-story-line at-story-line--content">${escapeHtml(
+      introText
+    )}</p>`;
   } else {
     html += contentHtml;
   }
@@ -277,14 +290,24 @@ function renderTerminal(): void {
   if (state.phase === "choice" || state.phase === "discovery") {
     if (isSingleChoice) {
       // Single choice: just show a hint to continue
-      const hintText = isIntro ? "Press any key to begin..." : "Press any key to continue...";
+      const hintText = isIntro
+        ? "Press any key to begin..."
+        : "Press any key to continue...";
       html += `<p class="at-story-line at-story-line--hint">${hintText}</p>`;
     } else if (isGhostMarker) {
       // Ghost marker: show return/leave options
       html += `<p class="at-story-line at-story-line--question">Would you like to...</p>`;
       html += `<div class="at-story-options">`;
-      html += renderOption(0, `Return the ${typeName}`, state.selectedOptionIndex === 0);
-      html += renderOption(1, "Leave this place", state.selectedOptionIndex === 1);
+      html += renderOption(
+        0,
+        `Return the ${typeName}`,
+        state.selectedOptionIndex === 0
+      );
+      html += renderOption(
+        1,
+        "Leave this place",
+        state.selectedOptionIndex === 1
+      );
       html += `</div>`;
     } else {
       // Multiple choices: show the options
@@ -294,11 +317,19 @@ function renderTerminal(): void {
 
       if (isPortal) {
         // Portals have "Travel" option
-        html += renderOption(0, "Step through the portal", state.selectedOptionIndex === 0);
+        html += renderOption(
+          0,
+          "Step through the portal",
+          state.selectedOptionIndex === 0
+        );
         html += renderOption(1, "Leave it be", state.selectedOptionIndex === 1);
       } else {
         // Regular artifacts
-        html += renderOption(0, `Take it with you`, state.selectedOptionIndex === 0);
+        html += renderOption(
+          0,
+          `Take it with you`,
+          state.selectedOptionIndex === 0
+        );
         html += renderOption(1, "Leave it be", state.selectedOptionIndex === 1);
       }
 
@@ -317,7 +348,9 @@ function renderTerminal(): void {
       resultText = STORY_LEAVE_RESULTS[artifactType];
     } else if (isGhostMarker) {
       // Ghost marker results
-      resultText = tookIt ? STORY_RETURN_RESULTS[artifactType] : STORY_GHOST_LEAVE_RESULTS[artifactType];
+      resultText = tookIt
+        ? STORY_RETURN_RESULTS[artifactType]
+        : STORY_GHOST_LEAVE_RESULTS[artifactType];
     } else if (tookIt) {
       resultText = STORY_TAKE_RESULTS[artifactType];
     } else {
@@ -353,9 +386,9 @@ function renderTerminal(): void {
  */
 function selectOptionVisual(index: number, options: NodeListOf<Element>): void {
   if (state.phase !== "choice") return;
-  
+
   state.selectedOptionIndex = index;
-  
+
   // Update visual state of all options
   options.forEach((option, i) => {
     const arrow = option.querySelector(".at-story-arrow");
@@ -445,13 +478,29 @@ function handleKeyDown(e: KeyboardEvent): void {
   const isSingleChoice = isIntro || isDirection;
 
   // For single-choice artifacts, any key continues (even during discovery phase)
-  if (isSingleChoice && (state.phase === "choice" || state.phase === "discovery")) {
+  if (
+    isSingleChoice &&
+    (state.phase === "choice" || state.phase === "discovery")
+  ) {
     // Check if it's a movement key
-    const isMovementKey = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "w", "W", "a", "A", "s", "S", "d", "D"].includes(e.key);
-    
+    const isMovementKey = [
+      "ArrowUp",
+      "ArrowDown",
+      "ArrowLeft",
+      "ArrowRight",
+      "w",
+      "W",
+      "a",
+      "A",
+      "s",
+      "S",
+      "d",
+      "D",
+    ].includes(e.key);
+
     // Force phase to choice so confirmChoice works
     state.phase = "choice";
-    
+
     if (isMovementKey) {
       // Don't prevent default or stop propagation - let the key pass through to input system
       // Close immediately so movement starts right away
@@ -545,7 +594,9 @@ function renderContentLine(content: string): string {
     return `<div class="at-story-line at-story-line--content at-story-line--media">${content}</div>`;
   } else {
     // For text content, escape HTML and wrap in quotes
-    return `<p class="at-story-line at-story-line--content">"${escapeHtml(stripHtml(content))}"</p>`;
+    return `<p class="at-story-line at-story-line--content">"${escapeHtml(
+      stripHtml(content)
+    )}"</p>`;
   }
 }
 
@@ -566,4 +617,3 @@ function escapeHtml(text: string): string {
   div.textContent = text;
   return div.innerHTML;
 }
-

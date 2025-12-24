@@ -24,8 +24,8 @@ export interface DesignConfig {
 }
 
 export interface ViewportConfig {
-  maxWidth: number; // Maximum viewport width (default 390 - iPhone 14 width)
-  maxHeight: number; // Maximum viewport height (default 844 - iPhone 14 height)
+  sizePercent: number; // Percentage of screen to use (0-100, default 90) - maintains window aspect ratio
+  mobileBreakpoint: number; // Screen width below which viewport becomes full screen (default 768)
 }
 
 export interface AvatarConfig {

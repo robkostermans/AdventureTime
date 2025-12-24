@@ -13,6 +13,7 @@ import {
   moveWorld,
   getWorldContainer,
   setWorldPosition,
+  recalculateWorldBounds,
 } from "./world";
 import {
   initInteraction,
@@ -41,6 +42,7 @@ import {
   setMovementStopCallback,
 } from "./input";
 import type { AppConfig, CleanupFunction } from "../core/types";
+import { debounce } from "../core/utils";
 
 export async function initFeatures(
   config: AppConfig
@@ -101,8 +103,8 @@ export async function initFeatures(
     initViewport({
       enabled: true,
       debug: config.debug,
-      maxWidth: config.viewport.maxWidth,
-      maxHeight: config.viewport.maxHeight,
+      sizePercent: config.viewport.sizePercent,
+      mobileBreakpoint: config.viewport.mobileBreakpoint,
     });
     cleanupFunctions.push(destroyViewport);
 
@@ -198,6 +200,26 @@ export async function initFeatures(
     if (config.inventory.enabled) {
       enableCollisionDetection();
     }
+
+    // Setup window resize handler to recalculate all layers
+    const handleResize = debounce(() => {
+      // Recalculate world bounds
+      recalculateWorldBounds();
+
+      // Update artifact viewport states
+      if (config.interaction.enabled) {
+        updateArtifactViewportStates();
+      }
+
+      if (config.debug) {
+        console.log("Window resized - layers recalculated");
+      }
+    }, 100);
+
+    window.addEventListener("resize", handleResize);
+    cleanupFunctions.push(() => {
+      window.removeEventListener("resize", handleResize);
+    });
 
     // Return cleanup function
     return () => {

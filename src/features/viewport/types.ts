@@ -3,8 +3,10 @@
 import type { FeatureConfig } from "../../core/types";
 
 export interface ViewportFeatureConfig extends FeatureConfig {
-  maxWidth: number; // Maximum viewport width in pixels (for larger screens)
-  maxHeight: number; // Maximum viewport height in pixels (for larger screens)
+  // Percentage of screen to use (0-100) - maintains window aspect ratio
+  sizePercent: number;
+  // Breakpoint below which viewport becomes full screen (in pixels)
+  mobileBreakpoint: number;
 }
 
 export interface ViewportElements {

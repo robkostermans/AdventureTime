@@ -9,6 +9,7 @@ let isInitialized = false;
 let config: ViewportFeatureConfig;
 let elements: ViewportElements | null = null;
 let cleanupFunctions: CleanupFunction[] = [];
+let resizeHandler: (() => void) | null = null;
 
 const VIEWPORT_ID = "adventure-time-viewport";
 const VIEWPORT_STYLES_ID = "adventure-time-viewport-styles";
@@ -32,20 +33,48 @@ export function initViewport(featureConfig: ViewportFeatureConfig): void {
   // Create viewport elements
   elements = createViewportElements();
   
-  // Set CSS variables for viewport max dimensions
-  elements.container.style.setProperty("--at-viewport-max-width", `${config.maxWidth}px`);
-  elements.container.style.setProperty("--at-viewport-max-height", `${config.maxHeight}px`);
+  // Apply viewport sizing
+  updateViewportSize();
+  
+  // Listen for window resize to update sizing
+  resizeHandler = () => updateViewportSize();
+  window.addEventListener("resize", resizeHandler);
   
   document.body.appendChild(elements.container);
 
   cleanupFunctions.push(() => {
     elements?.container.remove();
+    if (resizeHandler) {
+      window.removeEventListener("resize", resizeHandler);
+      resizeHandler = null;
+    }
   });
 
   isInitialized = true;
 
   if (config.debug) {
     console.log("Viewport initialized", config);
+  }
+}
+
+/**
+ * Updates viewport size based on current window dimensions and config.
+ * On mobile (below breakpoint), uses full screen.
+ * On larger screens, scales both dimensions by sizePercent, maintaining window aspect ratio.
+ */
+function updateViewportSize(): void {
+  if (!elements || !config) return;
+  
+  const isMobile = window.innerWidth <= config.mobileBreakpoint;
+  
+  if (isMobile) {
+    // Full screen on mobile
+    elements.container.style.setProperty("--at-viewport-width", "100vw");
+    elements.container.style.setProperty("--at-viewport-height", "100vh");
+  } else {
+    // Scale both dimensions by sizePercent, maintaining window aspect ratio
+    elements.container.style.setProperty("--at-viewport-width", `${config.sizePercent}vw`);
+    elements.container.style.setProperty("--at-viewport-height", `${config.sizePercent}vh`);
   }
 }
 
@@ -66,17 +95,26 @@ export function getViewportContainer(): HTMLDivElement | null {
 
 /**
  * Returns the current viewport dimensions.
- * On mobile (smaller than max dimensions), returns actual screen size.
- * On larger screens, returns the max dimensions from config.
+ * On mobile (below breakpoint), returns full screen size.
+ * On larger screens, returns scaled dimensions maintaining window aspect ratio.
  */
 export function getViewportDimensions(): { width: number; height: number } {
   if (!config) {
-    return { width: 390, height: 844 }; // Default iPhone 14 dimensions
+    return { 
+      width: window.innerWidth * 0.9, 
+      height: window.innerHeight * 0.9 
+    };
   }
   
-  // Calculate actual viewport size (respecting max constraints)
-  const width = Math.min(window.innerWidth, config.maxWidth);
-  const height = Math.min(window.innerHeight, config.maxHeight);
+  const isMobile = window.innerWidth <= config.mobileBreakpoint;
+  
+  if (isMobile) {
+    return { width: window.innerWidth, height: window.innerHeight };
+  }
+  
+  // Scale both dimensions by sizePercent
+  const width = (window.innerWidth * config.sizePercent) / 100;
+  const height = (window.innerHeight * config.sizePercent) / 100;
   
   return { width, height };
 }

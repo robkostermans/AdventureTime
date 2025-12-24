@@ -7,6 +7,7 @@ export {
   getWorldState,
   moveWorld,
   setWorldPosition,
+  recalculateWorldBounds,
 } from "./world";
 export type { WorldFeatureConfig, WorldBounds, WorldState } from "./types";
 

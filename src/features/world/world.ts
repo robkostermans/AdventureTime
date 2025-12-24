@@ -30,10 +30,15 @@ export function initWorld(featureConfig: WorldFeatureConfig): void {
   // Calculate world bounds based on viewport and page size
   const bounds = calculateWorldBounds();
 
+  // Calculate initial avatar map position (screen center when world is at 0,0)
+  const screenCenterX = window.innerWidth / 2;
+  const screenCenterY = window.innerHeight / 2;
+
   // Initialize world state at center
   worldState = {
     position: { x: 0, y: 0 },
     bounds,
+    avatarMapPosition: { x: screenCenterX, y: screenCenterY },
   };
 
   // Inject world styles from CSS module
@@ -105,6 +110,12 @@ export function moveWorld(delta: Vector2D): Vector2D {
   worldState.position.x = clampedX;
   worldState.position.y = clampedY;
 
+  // Update avatar map position (screen center - world position)
+  const screenCenterX = window.innerWidth / 2;
+  const screenCenterY = window.innerHeight / 2;
+  worldState.avatarMapPosition.x = screenCenterX - clampedX;
+  worldState.avatarMapPosition.y = screenCenterY - clampedY;
+
   // Apply transform to world container
   worldContainer.style.transform = `translate(${clampedX}px, ${clampedY}px)`;
 
@@ -136,7 +147,47 @@ export function setWorldPosition(position: Vector2D): void {
   worldState.position.x = clampedX;
   worldState.position.y = clampedY;
 
+  // Update avatar map position (screen center - world position)
+  const screenCenterX = window.innerWidth / 2;
+  const screenCenterY = window.innerHeight / 2;
+  worldState.avatarMapPosition.x = screenCenterX - clampedX;
+  worldState.avatarMapPosition.y = screenCenterY - clampedY;
+
   worldContainer.style.transform = `translate(${clampedX}px, ${clampedY}px)`;
+}
+
+/**
+ * Recalculates world bounds based on current viewport size.
+ * Adjusts world position to keep the avatar at the same map location.
+ * Should be called when the window is resized.
+ */
+export function recalculateWorldBounds(): void {
+  if (!worldState || !worldContainer) return;
+  
+  // The avatar's map position is stored and maintained on every world move
+  // This represents the avatar's position in page/map coordinates (doesn't change with resize)
+  const avatarMapX = worldState.avatarMapPosition.x;
+  const avatarMapY = worldState.avatarMapPosition.y;
+  
+  // Recalculate bounds with new viewport size
+  worldState.bounds = calculateWorldBounds();
+  
+  // Calculate new world position to keep avatar at the same map location
+  // world position = screen center - avatar map position
+  const newScreenCenterX = window.innerWidth / 2;
+  const newScreenCenterY = window.innerHeight / 2;
+  
+  let newX = newScreenCenterX - avatarMapX;
+  let newY = newScreenCenterY - avatarMapY;
+  
+  // Clamp to new bounds
+  newX = clamp(newX, worldState.bounds.minX, worldState.bounds.maxX);
+  newY = clamp(newY, worldState.bounds.minY, worldState.bounds.maxY);
+  
+  // Update position
+  worldState.position.x = newX;
+  worldState.position.y = newY;
+  worldContainer.style.transform = `translate(${newX}px, ${newY}px)`;
 }
 
 /**
