@@ -8,6 +8,8 @@ import type { Artifact } from "../interaction/types";
 import type { NavigationFeatureConfig } from "./types";
 import { moveToPosition, isInputPaused } from "../input";
 import { isStoryModeActive, handleStoryModeClick } from "../storymode";
+import { isInventoryOpen } from "../inventory";
+import { getWorldContainer, getWorldState } from "../world";
 import navigationStyles from "./navigation.css?inline";
 
 let isInitialized = false;
@@ -71,13 +73,18 @@ export function initNavigation(
     indicatorElement?.remove();
   });
 
-  // Create click indicator element
+  // Create click indicator element inside world container so it moves with the world
   clickIndicatorElement = createElement(
     "div",
     { id: CLICK_INDICATOR_ID, class: "at-click-indicator" },
     {}
   );
-  document.body.appendChild(clickIndicatorElement);
+  const worldContainer = getWorldContainer();
+  if (worldContainer) {
+    worldContainer.appendChild(clickIndicatorElement);
+  } else {
+    document.body.appendChild(clickIndicatorElement);
+  }
   cleanupFunctions.push(() => {
     clickIndicatorElement?.remove();
     clickIndicatorElement = null;
@@ -286,6 +293,11 @@ function setupClickToMove(): void {
     const target = e.target as HTMLElement;
     const isStoryOption = target.closest(".at-story-option") !== null;
     
+    // If inventory is open, don't process click-to-move
+    if (isInventoryOpen()) {
+      return;
+    }
+    
     // If story mode is active, handle the click there first
     if (isStoryModeActive()) {
       // If clicking on a story option, let the story mode handle it directly
@@ -337,13 +349,21 @@ function setupClickToMove(): void {
 }
 
 /**
- * Shows the click indicator at the specified screen position
+ * Shows the click indicator at the specified screen position.
+ * Converts screen coordinates to world coordinates so the indicator
+ * stays in place as the world moves.
  */
-function showClickIndicator(x: number, y: number): void {
+function showClickIndicator(screenX: number, screenY: number): void {
   if (!clickIndicatorElement) return;
   
-  clickIndicatorElement.style.left = `${x}px`;
-  clickIndicatorElement.style.top = `${y}px`;
+  // Convert screen coordinates to world coordinates
+  // The world container is transformed by worldState.position
+  const worldState = getWorldState();
+  const worldX = screenX - (worldState?.position.x ?? 0);
+  const worldY = screenY - (worldState?.position.y ?? 0);
+  
+  clickIndicatorElement.style.left = `${worldX}px`;
+  clickIndicatorElement.style.top = `${worldY}px`;
   clickIndicatorElement.classList.remove("at-click-indicator--active");
   
   // Force reflow to restart animation

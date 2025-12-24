@@ -160,6 +160,28 @@ Press any key to begin...
 
 The intro artifact is also a **single-choice artifact** - it uses warmer styling and custom content from configuration, and any key press will dismiss it and start the adventure.
 
+### Ghost Markers (⭐) - Multi Choice
+
+When an artifact is collected, a ghost marker is left behind at its original location. Returning to a ghost marker triggers a special story mode interaction:
+
+```
+You found a ⭐ scroll here containing:
+
+    "The ancient text reads..."
+
+Would you like to...
+
+    ▶ Return the scroll
+      Leave this place
+```
+
+**Result messages:**
+
+- Return: "You return the scroll to its original place." (item removed from inventory, artifact restored)
+- Leave: "You leave the scroll where it lies." (no change)
+
+The "Return" option removes the item from inventory, removes the ghost marker, and recreates the original artifact at that location, making it collectable again.
+
 ## Technical Implementation
 
 ### Files
@@ -189,6 +211,12 @@ setStoryModeCallbacks(
   },
   (artifactId) => {
     /* handle leave */
+  },
+  (artifactId, href) => {
+    /* handle travel (portals) */
+  },
+  (artifactId) => {
+    /* handle return (ghost markers) */
   }
 );
 ```

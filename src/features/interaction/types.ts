@@ -84,6 +84,7 @@ export interface GhostMarker {
   originalHref?: string;
   iconElement: HTMLDivElement;
   position: { x: number; y: number };
+  sourceElement: HTMLElement; // Original source element for recreating artifact
 }
 
 /**

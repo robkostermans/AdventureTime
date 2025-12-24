@@ -137,6 +137,7 @@ export function createGhostMarker(
   position: { x: number; y: number },
   originalType: ArtifactType,
   originalContent: string,
+  sourceElement: HTMLElement,
   originalHref?: string
 ): string | null {
   if (!interactionLayer) return null;
@@ -156,6 +157,7 @@ export function createGhostMarker(
     originalHref,
     iconElement: ghost,
     position,
+    sourceElement,
   };
 
   ghostMarkers.push(marker);
@@ -173,6 +175,82 @@ export function createGhostMarker(
  */
 export function getGhostMarkers(): GhostMarker[] {
   return [...ghostMarkers];
+}
+
+/**
+ * Removes a ghost marker by ID
+ */
+export function removeGhostMarker(id: string): void {
+  const index = ghostMarkers.findIndex((g) => g.id === id);
+  if (index !== -1) {
+    const ghost = ghostMarkers[index];
+    ghost.iconElement.remove();
+    ghostMarkers.splice(index, 1);
+  }
+}
+
+/**
+ * Restores an artifact from a ghost marker and removes the ghost marker.
+ * Used when returning an item from inventory to its original location.
+ * Returns the restored artifact or null if restoration failed.
+ */
+export function restoreArtifactFromGhost(ghostId: string): Artifact | null {
+  const index = ghostMarkers.findIndex((g) => g.id === ghostId);
+  if (index === -1) return null;
+
+  const ghost = ghostMarkers[index];
+
+  // Create the icon element for the restored artifact
+  let artifactClass = `at-artifact at-artifact-${ghost.originalType}`;
+
+  // For direction artifacts, add header level class for size scaling
+  if (ghost.originalType === "direction") {
+    const tagName = ghost.sourceElement.tagName.toLowerCase();
+    const headerLevel = tagName.match(/^h([1-6])$/)?.[1] || "4";
+    artifactClass += ` at-artifact-direction-h${headerLevel}`;
+  }
+
+  const iconElement = createElement(
+    "div",
+    {
+      class: artifactClass,
+      "data-artifact-type": ghost.originalType,
+    },
+    {}
+  );
+
+  iconElement.textContent = ARTIFACT_ICONS[ghost.originalType];
+
+  // Position the icon at the ghost marker's position
+  iconElement.style.left = `${ghost.position.x}px`;
+  iconElement.style.top = `${ghost.position.y}px`;
+
+  // Create the artifact
+  const artifact: Artifact = {
+    id: generateId("artifact"),
+    type: ghost.originalType,
+    sourceElement: ghost.sourceElement,
+    iconElement,
+    position: { x: ghost.position.x, y: ghost.position.y },
+    size: {
+      width: ghost.sourceElement.offsetWidth,
+      height: ghost.sourceElement.offsetHeight,
+    },
+  };
+
+  // Add to artifacts array and DOM
+  artifacts.push(artifact);
+  interactionLayer?.appendChild(iconElement);
+
+  // Remove the ghost marker
+  ghost.iconElement.remove();
+  ghostMarkers.splice(index, 1);
+
+  if (config.debug) {
+    console.log("Artifact restored from ghost:", artifact);
+  }
+
+  return artifact;
 }
 
 /**

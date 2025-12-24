@@ -10,6 +10,8 @@ export {
   updateArtifactViewportStates,
   createGhostMarker,
   getGhostMarkers,
+  removeGhostMarker,
+  restoreArtifactFromGhost,
   getIntroConfig,
 } from "./interaction";
 

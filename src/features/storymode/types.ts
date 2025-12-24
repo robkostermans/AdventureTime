@@ -29,6 +29,7 @@ export interface StoryContent {
   isIntro?: boolean;
   introText?: string;
   originalHref?: string;
+  isGhostMarker?: boolean; // True if this is a ghost marker (collected artifact location)
 }
 
 /**
@@ -77,5 +78,29 @@ export const STORY_LEAVE_RESULTS: Record<ArtifactType, string> = {
   diamond: "You leave the diamond untouched.",
   silver: "You leave the silver coin behind.",
   gold: "You leave the gold coin where it rests.",
+};
+
+/**
+ * Result messages for returning items at ghost markers
+ */
+export const STORY_RETURN_RESULTS: Record<ArtifactType, string> = {
+  portal: "You mark this portal location in your memory.",
+  paper: "You return the scroll to its resting place.",
+  direction: "You remember this sign well.",
+  diamond: "You place the diamond back where you found it.",
+  silver: "You return the silver coin to its spot.",
+  gold: "You place the gold coin back where it lay.",
+};
+
+/**
+ * Result messages for leaving ghost marker locations
+ */
+export const STORY_GHOST_LEAVE_RESULTS: Record<ArtifactType, string> = {
+  portal: "You move on, the portal's location etched in memory.",
+  paper: "You continue, keeping the scroll safe in your bag.",
+  direction: "You move along, the sign's wisdom remembered.",
+  diamond: "You continue on, the diamond secure in your collection.",
+  silver: "You move on, the silver coin jingling in your pouch.",
+  gold: "You continue, the gold coin safely pocketed.",
 };
 

@@ -8,6 +8,8 @@ import type { GhostMarker } from "../interaction/types";
 import {
   createGhostMarker,
   getGhostMarkers,
+  removeGhostMarker,
+  restoreArtifactFromGhost,
   getIntroConfig,
 } from "../interaction";
 import { pauseInput, resumeInput, moveToPosition } from "../input";
@@ -107,7 +109,11 @@ export function initInventory(
 
   // Setup story mode callbacks
   if (isStoryModeEnabled()) {
-    setStoryModeCallbacks(handleStoryModeTake, handleStoryModeLeave);
+    setStoryModeCallbacks(
+      handleStoryModeTake,
+      handleStoryModeLeave,
+      handleStoryModeReturn
+    );
   }
 
   // Start collision detection
@@ -420,15 +426,14 @@ function showGhostMarkerStoryMode(ghost: GhostMarker): void {
     size: { width: 16, height: 16 },
   };
 
-  // Show as a "memory" - single choice, just continue
+  // Show as ghost marker with return/leave options
   showStoryMode(
     fakeArtifact,
     ghost.originalContent,
     false, // Not intro
-    `You remember collecting this ${ARTIFACT_TYPE_LABELS[
-      ghost.originalType
-    ].toLowerCase()} here.`,
-    undefined
+    undefined, // No intro text
+    ghost.originalHref, // Original href if it was a portal
+    true // isGhostMarker
   );
 }
 
@@ -441,6 +446,57 @@ function handleGhostMarkerLeave(): void {
     collisionCooldownUntil = Date.now() + COLLISION_COOLDOWN_MS;
     currentStoryModeGhostMarker = null;
   }
+}
+
+/**
+ * Handle "Return" action from story mode (return item to ghost marker location)
+ */
+function handleStoryModeReturn(artifactId: string): void {
+  // This is called for ghost markers when user chooses to return the item
+  if (
+    !currentStoryModeGhostMarker ||
+    currentStoryModeGhostMarker.id !== artifactId
+  ) {
+    // Check if this is a regular artifact (shouldn't happen, but handle gracefully)
+    if (
+      currentStoryModeArtifact &&
+      currentStoryModeArtifact.id === artifactId
+    ) {
+      handleStoryModeLeave(artifactId);
+    }
+    return;
+  }
+
+  const ghost = currentStoryModeGhostMarker;
+
+  // Find and remove the item from inventory
+  const itemIndex = state.items.findIndex(
+    (item) =>
+      item.artifact.type === ghost.originalType &&
+      item.originalContent === ghost.originalContent
+  );
+
+  if (itemIndex !== -1) {
+    // Remove from inventory
+    state.items.splice(itemIndex, 1);
+    updateBagCounter();
+    renderInventoryDialog();
+
+    // Restore the artifact from the ghost marker (removes ghost and creates new artifact)
+    const restoredArtifact = restoreArtifactFromGhost(ghost.id);
+
+    if (restoredArtifact) {
+      // Set cooldown using the NEW artifact's ID to prevent immediate re-collision
+      lastDismissedArtifactId = restoredArtifact.id;
+      collisionCooldownUntil = Date.now() + COLLISION_COOLDOWN_MS;
+
+      if (config.debug) {
+        console.log("Item returned to world:", restoredArtifact);
+      }
+    }
+  }
+
+  currentStoryModeGhostMarker = null;
 }
 
 /**
@@ -542,6 +598,7 @@ function collectArtifact(
       artifactPosition,
       artifact.type,
       originalContent,
+      artifact.sourceElement,
       originalHref
     );
 

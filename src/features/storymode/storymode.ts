@@ -17,6 +17,8 @@ import {
   STORY_TAKE_VERBS,
   STORY_TAKE_RESULTS,
   STORY_LEAVE_RESULTS,
+  STORY_RETURN_RESULTS,
+  STORY_GHOST_LEAVE_RESULTS,
 } from "./types";
 import storyModeStyles from "./storymode.css?inline";
 
@@ -36,6 +38,7 @@ let state: StoryState = {
 // Callbacks
 let onTakeCallback: ((artifactId: string) => void) | null = null;
 let onLeaveCallback: ((artifactId: string) => void) | null = null;
+let onReturnCallback: ((artifactId: string) => void) | null = null;
 
 // Current content being displayed
 let currentContent: StoryContent | null = null;
@@ -137,37 +140,47 @@ export function handleStoryModeClick(): boolean {
 }
 
 /**
- * Set callbacks for take/leave actions
+ * Set callbacks for take/leave/return actions
  */
 export function setStoryModeCallbacks(
   onTake: (artifactId: string) => void,
-  onLeave: (artifactId: string) => void
+  onLeave: (artifactId: string) => void,
+  onReturn?: (artifactId: string) => void
 ): void {
   onTakeCallback = onTake;
   onLeaveCallback = onLeave;
+  onReturnCallback = onReturn || null;
 }
 
 /**
  * Show story mode for an artifact
+ * @param artifact - The artifact being interacted with
+ * @param content - The content to display
+ * @param isIntro - Whether this is the intro artifact
+ * @param introText - Optional intro text
+ * @param originalHref - Optional href for portals
+ * @param isGhostMarker - Whether this is a ghost marker (collected artifact location)
  */
 export function showStoryMode(
   artifact: Artifact,
   content: string,
   isIntro?: boolean,
   introText?: string,
-  originalHref?: string
+  originalHref?: string,
+  isGhostMarker?: boolean
 ): void {
   if (!terminalElement) return;
 
   currentContent = {
     artifactId: artifact.id,
     artifactType: artifact.type,
-    icon: artifact.isIntro ? "🎪" : ARTIFACT_ICONS[artifact.type],
+    icon: isGhostMarker ? "⭐" : (artifact.isIntro ? "🎪" : ARTIFACT_ICONS[artifact.type]),
     typeName: STORY_TYPE_LABELS[artifact.type],
     content,
     isIntro,
     introText,
     originalHref,
+    isGhostMarker,
   };
 
   state = {
@@ -235,7 +248,7 @@ function createTerminalElement(): HTMLDivElement {
 function renderTerminal(): void {
   if (!terminalElement || !currentContent) return;
 
-  const { artifactType, icon, typeName, content, isIntro, introText } = currentContent;
+  const { artifactType, icon, typeName, content, isIntro, introText, isGhostMarker } = currentContent;
   const isDirection = artifactType === "direction";
   const isPortal = artifactType === "portal";
   const isSingleChoice = isIntro || isDirection;
@@ -243,7 +256,9 @@ function renderTerminal(): void {
   let html = "";
 
   // Discovery line
-  if (isIntro) {
+  if (isGhostMarker) {
+    html += `<p class="at-story-line at-story-line--discovery">You found a <span class="at-story-icon">${icon}</span> ${typeName} here containing:</p>`;
+  } else if (isIntro) {
     html += `<p class="at-story-line at-story-line--discovery">You have arrived at a <span class="at-story-icon">${icon}</span> welcome marker...</p>`;
   } else {
     html += `<p class="at-story-line at-story-line--discovery">You have found a <span class="at-story-icon">${icon}</span> ${typeName} containing:</p>`;
@@ -264,6 +279,13 @@ function renderTerminal(): void {
       // Single choice: just show a hint to continue
       const hintText = isIntro ? "Press any key to begin..." : "Press any key to continue...";
       html += `<p class="at-story-line at-story-line--hint">${hintText}</p>`;
+    } else if (isGhostMarker) {
+      // Ghost marker: show return/leave options
+      html += `<p class="at-story-line at-story-line--question">Would you like to...</p>`;
+      html += `<div class="at-story-options">`;
+      html += renderOption(0, `Return the ${typeName}`, state.selectedOptionIndex === 0);
+      html += renderOption(1, "Leave this place", state.selectedOptionIndex === 1);
+      html += `</div>`;
     } else {
       // Multiple choices: show the options
       html += `<p class="at-story-line at-story-line--question">Would you like to...</p>`;
@@ -293,6 +315,9 @@ function renderTerminal(): void {
       resultText = "Your adventure begins...";
     } else if (isDirection) {
       resultText = STORY_LEAVE_RESULTS[artifactType];
+    } else if (isGhostMarker) {
+      // Ghost marker results
+      resultText = tookIt ? STORY_RETURN_RESULTS[artifactType] : STORY_GHOST_LEAVE_RESULTS[artifactType];
     } else if (tookIt) {
       resultText = STORY_TAKE_RESULTS[artifactType];
     } else {
@@ -363,7 +388,7 @@ function selectOption(index: number): void {
 function confirmChoice(immediate: boolean = false): void {
   if (state.phase !== "choice" || !currentContent) return;
 
-  const { artifactId, artifactType, isIntro } = currentContent;
+  const { artifactId, artifactType, isIntro, isGhostMarker } = currentContent;
   const tookIt = state.selectedOptionIndex === 0;
   const isDirection = artifactType === "direction";
   const isSingleChoice = isIntro || isDirection;
@@ -384,6 +409,13 @@ function confirmChoice(immediate: boolean = false): void {
     if (isSingleChoice) {
       // Intro and direction just close
       onLeaveCallback?.(artifactId);
+    } else if (isGhostMarker) {
+      // Ghost marker: return item or leave the place
+      if (tookIt) {
+        onReturnCallback?.(artifactId);
+      } else {
+        onLeaveCallback?.(artifactId);
+      }
     } else if (tookIt) {
       onTakeCallback?.(artifactId);
     } else {
