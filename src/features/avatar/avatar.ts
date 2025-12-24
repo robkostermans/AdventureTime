@@ -3,6 +3,7 @@
 import { createElement, injectStyles } from "../../core/utils";
 import type { CleanupFunction, Vector2D } from "../../core/types";
 import type { AvatarFeatureConfig, AvatarState } from "./types";
+import { getViewportContainer } from "../viewport";
 import avatarStyles from "./avatar.css?inline";
 
 let isInitialized = false;
@@ -62,7 +63,10 @@ export function initAvatar(featureConfig: AvatarFeatureConfig): void {
     avatarElement.style.setProperty("--at-avatar-border-radius", borderRadius);
   }
   
-  document.body.appendChild(avatarElement);
+  // Append to viewport container so it shares stacking context with inventory
+  const viewportContainer = getViewportContainer();
+  const container = viewportContainer || document.body;
+  container.appendChild(avatarElement);
 
   cleanupFunctions.push(() => {
     avatarElement?.remove();

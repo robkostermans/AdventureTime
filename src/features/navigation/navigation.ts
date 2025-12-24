@@ -293,8 +293,13 @@ function setupClickToMove(): void {
     const target = e.target as HTMLElement;
     const isStoryOption = target.closest(".at-story-option") !== null;
     
-    // If inventory is open, don't process click-to-move
-    if (isInventoryOpen()) {
+    // Check if click is on any inventory element (bag, dialog, tooltip)
+    const isInventoryElement = target.closest(".at-inventory-bag") !== null ||
+                               target.closest(".at-inventory-dialog") !== null ||
+                               target.closest(".at-inventory-tooltip") !== null;
+    
+    // If clicking on inventory elements or inventory is open, don't process click-to-move
+    if (isInventoryElement || isInventoryOpen()) {
       return;
     }
     

@@ -13,6 +13,7 @@ import {
   getIntroConfig,
 } from "../interaction";
 import { pauseInput, resumeInput, moveToPosition } from "../input";
+import { getViewportContainer } from "../viewport";
 import {
   isStoryModeEnabled,
   isStoryModeActive,
@@ -34,12 +35,14 @@ let cleanupFunctions: CleanupFunction[] = [];
 // UI Elements
 let bagElement: HTMLDivElement | null = null;
 let dialogElement: HTMLDivElement | null = null;
+let tooltipElement: HTMLDivElement | null = null;
 
 // State
 let state: InventoryState = {
   items: [],
   isOpen: false,
   expandedItemId: null,
+  focusedItemId: null,
 };
 
 // Collision detection
@@ -83,6 +86,7 @@ export function initInventory(
     items: [],
     isOpen: false,
     expandedItemId: null,
+    focusedItemId: null,
   };
 
   // Inject styles from CSS module
@@ -92,13 +96,20 @@ export function initInventory(
   // Create UI elements
   bagElement = createBagElement();
   dialogElement = createDialogElement();
+  tooltipElement = createTooltipElement();
 
-  document.body.appendChild(bagElement);
-  document.body.appendChild(dialogElement);
+  // Append to viewport container so they're positioned relative to the viewport
+  const viewportContainer = getViewportContainer();
+  const container = viewportContainer || document.body;
+  
+  container.appendChild(bagElement);
+  container.appendChild(dialogElement);
+  container.appendChild(tooltipElement);
 
   cleanupFunctions.push(() => {
     bagElement?.remove();
     dialogElement?.remove();
+    tooltipElement?.remove();
   });
 
   // Setup keyboard shortcut (Ctrl+I)
@@ -138,6 +149,7 @@ export function destroyInventory(): void {
 
   bagElement = null;
   dialogElement = null;
+  tooltipElement = null;
   getArtifactsFunc = null;
   removeArtifactFunc = null;
   currentStoryModeArtifact = null;
@@ -150,6 +162,7 @@ export function destroyInventory(): void {
     items: [],
     isOpen: false,
     expandedItemId: null,
+    focusedItemId: null,
   };
 
   isInitialized = false;
@@ -176,6 +189,7 @@ export function openInventory(): void {
 
   state.isOpen = true;
   state.expandedItemId = null;
+  state.focusedItemId = null;
   renderInventoryDialog();
   dialogElement.classList.add("at-inventory-dialog--open");
 }
@@ -185,6 +199,8 @@ export function closeInventory(): void {
 
   state.isOpen = false;
   state.expandedItemId = null;
+  state.focusedItemId = null;
+  hideTooltip();
   dialogElement.classList.remove("at-inventory-dialog--open");
 }
 
@@ -702,7 +718,7 @@ function renderInventoryDialog(): void {
   const itemsHtml =
     state.items.length === 0
       ? `<div class="at-inventory-empty">Your bag is empty. Explore and collect artifacts!</div>`
-      : state.items.map((item) => renderInventoryItem(item)).join("");
+      : `<div class="at-inventory-grid">${state.items.map((item) => renderInventoryGridItem(item)).join("")}</div>`;
 
   dialogElement.innerHTML = `
     <div class="at-inventory-dialog-header">
@@ -719,53 +735,145 @@ function renderInventoryDialog(): void {
   const closeBtn = dialogElement.querySelector('[data-action="close"]');
   closeBtn?.addEventListener("click", () => closeInventory());
 
-  // Add accordion listeners
-  const accordionHeaders = dialogElement.querySelectorAll(
-    ".at-inventory-item-header"
-  );
-  accordionHeaders.forEach((header) => {
-    header.addEventListener("click", () => {
-      const itemId = header.getAttribute("data-item-id");
-      if (itemId) {
-        toggleItemExpanded(itemId);
+  // Add grid item listeners (click to show tooltip)
+  const gridItems = dialogElement.querySelectorAll(".at-inventory-grid-item");
+  gridItems.forEach((gridItem) => {
+    const itemId = gridItem.getAttribute("data-item-id");
+    if (!itemId) return;
+
+    // Click - toggle tooltip
+    gridItem.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (state.focusedItemId === itemId) {
+        // Clicking same item hides tooltip
+        hideTooltip();
+      } else {
+        showTooltipForItem(itemId);
+      }
+    });
+
+    // Keyboard Enter - show tooltip
+    gridItem.addEventListener("keydown", (e) => {
+      const keyEvent = e as KeyboardEvent;
+      if (keyEvent.key === "Enter" || keyEvent.key === " ") {
+        e.preventDefault();
+        if (state.focusedItemId === itemId) {
+          hideTooltip();
+        } else {
+          showTooltipForItem(itemId);
+        }
       }
     });
   });
+
+  // Setup keyboard navigation for the dialog
+  setupInventoryKeyboardNavigation();
 }
 
-function renderInventoryItem(item: InventoryItem): string {
+function renderInventoryGridItem(item: InventoryItem): string {
   const icon = ARTIFACT_ICONS[item.artifact.type];
-  const label = ARTIFACT_TYPE_LABELS[item.artifact.type];
-  const isExpanded = state.expandedItemId === item.id;
 
   return `
-    <div class="at-inventory-item ${
-      isExpanded ? "at-inventory-item--expanded" : ""
-    }">
-      <div class="at-inventory-item-header" data-item-id="${item.id}">
-        <span class="at-inventory-item-icon">${icon}</span>
-        <span class="at-inventory-item-label">${label}</span>
-        <span class="at-inventory-item-chevron">${isExpanded ? "▼" : "▶"}</span>
-      </div>
-      <div class="at-inventory-item-content">
-        <div class="at-inventory-item-preview">${item.originalContent}</div>
-        ${
-          item.originalHref
-            ? `<div class="at-inventory-item-link">→ ${item.originalHref}</div>`
-            : ""
-        }
-      </div>
+    <div class="at-inventory-grid-item" 
+         data-item-id="${item.id}" 
+         tabindex="0"
+         role="button"
+         aria-label="${ARTIFACT_TYPE_LABELS[item.artifact.type]}">
+      <span class="at-inventory-grid-item-icon">${icon}</span>
     </div>
   `;
 }
 
-function toggleItemExpanded(itemId: string): void {
-  if (state.expandedItemId === itemId) {
-    state.expandedItemId = null;
-  } else {
-    state.expandedItemId = itemId;
+// ============================================
+// Tooltip
+// ============================================
+
+const TOOLTIP_ID = "adventure-time-inventory-tooltip";
+
+function createTooltipElement(): HTMLDivElement {
+  const tooltip = createElement(
+    "div",
+    { id: TOOLTIP_ID, class: "at-inventory-tooltip" },
+    {}
+  );
+  return tooltip;
+}
+
+function showTooltipForItem(itemId: string): void {
+  const item = state.items.find((i) => i.id === itemId);
+  if (!item || !tooltipElement) return;
+
+  state.focusedItemId = itemId;
+
+  const icon = ARTIFACT_ICONS[item.artifact.type];
+  const label = ARTIFACT_TYPE_LABELS[item.artifact.type];
+
+  tooltipElement.innerHTML = `
+    <div class="at-inventory-tooltip-header">
+      <span class="at-inventory-tooltip-icon">${icon}</span>
+      <span class="at-inventory-tooltip-title">${label}</span>
+    </div>
+    <div class="at-inventory-tooltip-content">
+      <div class="at-inventory-tooltip-preview">${item.originalContent}</div>
+    </div>
+    ${item.originalHref ? `<div class="at-inventory-tooltip-link">→ ${item.originalHref}</div>` : ""}
+    <div class="at-inventory-tooltip-hint">Press Esc to close • Tab to navigate</div>
+  `;
+
+  tooltipElement.classList.add("at-inventory-tooltip--visible");
+}
+
+function hideTooltip(): void {
+  if (!tooltipElement) return;
+  state.focusedItemId = null;
+  tooltipElement.classList.remove("at-inventory-tooltip--visible");
+}
+
+// ============================================
+// Keyboard Navigation
+// ============================================
+
+let inventoryKeyboardHandler: ((e: KeyboardEvent) => void) | null = null;
+
+function setupInventoryKeyboardNavigation(): void {
+  // Remove existing handler if any
+  if (inventoryKeyboardHandler) {
+    document.removeEventListener("keydown", inventoryKeyboardHandler);
   }
-  renderInventoryDialog();
+
+  inventoryKeyboardHandler = (e: KeyboardEvent) => {
+    if (!state.isOpen) return;
+
+    // Escape - close tooltip first, then close inventory
+    if (e.key === "Escape") {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      if (state.focusedItemId) {
+        // If tooltip is visible, just hide it
+        hideTooltip();
+        // Blur the currently focused element
+        (document.activeElement as HTMLElement)?.blur();
+      } else {
+        // Close inventory
+        closeInventory();
+      }
+      return;
+    }
+
+    // Tab navigation is handled natively by tabindex
+    // But we ensure tooltip shows on focus via event listeners
+  };
+
+  document.addEventListener("keydown", inventoryKeyboardHandler);
+
+  // Add to cleanup
+  cleanupFunctions.push(() => {
+    if (inventoryKeyboardHandler) {
+      document.removeEventListener("keydown", inventoryKeyboardHandler);
+      inventoryKeyboardHandler = null;
+    }
+  });
 }
 
 // ============================================

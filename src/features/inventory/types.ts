@@ -25,7 +25,8 @@ export interface InventoryItem {
 export interface InventoryState {
   items: InventoryItem[];
   isOpen: boolean;
-  expandedItemId: string | null;
+  expandedItemId: string | null; // Legacy - kept for compatibility
+  focusedItemId: string | null; // Currently focused/hovered item for tooltip
 }
 
 /**

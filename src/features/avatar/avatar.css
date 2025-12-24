@@ -1,7 +1,8 @@
 /* Avatar Styles */
+/* Positioned relative to viewport container */
 
 .at-avatar {
-  position: fixed;
+  position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
@@ -9,7 +10,7 @@
   height: var(--at-avatar-size, 32px);
   background: var(--at-avatar-color, #4CAF50);
   border-radius: var(--at-avatar-border-radius, 50%);
-  z-index: 1000000;
+  z-index: 5;
   pointer-events: none;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   display: flex;

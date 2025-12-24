@@ -94,24 +94,10 @@ export async function initFeatures(
         });
         cleanupFunctions.push(destroyStoryMode);
       }
-
-      // Initialize inventory system (depends on interaction layer)
-      if (config.inventory.enabled) {
-        initInventory(
-          {
-            enabled: true,
-            debug: config.debug,
-            avatarSize: config.avatar.size,
-            collisionRadius: config.inventory.collisionRadius,
-          },
-          getArtifacts,
-          removeArtifact
-        );
-        cleanupFunctions.push(destroyInventory);
-      }
     }
 
     // Initialize viewport (creates the viewing window)
+    // Must be initialized before inventory so inventory can append to viewport container
     initViewport({
       enabled: true,
       debug: config.debug,
@@ -119,6 +105,21 @@ export async function initFeatures(
       maxHeight: config.viewport.maxHeight,
     });
     cleanupFunctions.push(destroyViewport);
+
+    // Initialize inventory system (depends on interaction layer AND viewport)
+    if (config.interaction.enabled && config.inventory.enabled) {
+      initInventory(
+        {
+          enabled: true,
+          debug: config.debug,
+          avatarSize: config.avatar.size,
+          collisionRadius: config.inventory.collisionRadius,
+        },
+        getArtifacts,
+        removeArtifact
+      );
+      cleanupFunctions.push(destroyInventory);
+    }
 
     // Set starting position: center on first direction artifact, or page center
     if (config.interaction.enabled) {
