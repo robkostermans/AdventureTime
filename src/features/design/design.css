@@ -9,6 +9,7 @@
   pointer-events: none;
   z-index: 5; /* Below interaction layer (z-index: 10) */
   overflow: visible;
+  background: var(--at-background-color, rgba(223, 206, 191, 1));
 }
 
 .at-design-svg {

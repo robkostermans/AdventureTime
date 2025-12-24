@@ -264,13 +264,13 @@ function renderTerminal(): void {
     html += `<p class="at-story-line at-story-line--discovery">You have found a <span class="at-story-icon">${icon}</span> ${typeName} containing:</p>`;
   }
 
-  // Content line
+  // Content line - check if content contains HTML elements that should be preserved (like images)
+  const contentHtml = renderContentLine(content);
   if (isIntro && introText) {
-    // For intro, escape and strip HTML from the header content
-    html += `<p class="at-story-line at-story-line--content">"${escapeHtml(stripHtml(content))}"</p>`;
+    html += contentHtml;
     html += `<p class="at-story-line at-story-line--content">${escapeHtml(introText)}</p>`;
   } else {
-    html += `<p class="at-story-line at-story-line--content">"${escapeHtml(stripHtml(content))}"</p>`;
+    html += contentHtml;
   }
 
   // Choice phase - for single choice artifacts, just show a hint
@@ -528,6 +528,25 @@ function navigateOptions(direction: number): void {
   if (newIndex >= maxOptions) newIndex = 0;
 
   selectOption(newIndex);
+}
+
+/**
+ * Renders the content line, preserving HTML for images and other media
+ */
+function renderContentLine(content: string): string {
+  // Check if content contains HTML elements that should be preserved
+  const hasImage = /<img\s/i.test(content);
+  const hasVideo = /<video\s/i.test(content);
+  const hasIframe = /<iframe\s/i.test(content);
+  const hasMedia = hasImage || hasVideo || hasIframe;
+
+  if (hasMedia) {
+    // Render HTML content directly in a container div (for images, videos, etc.)
+    return `<div class="at-story-line at-story-line--content at-story-line--media">${content}</div>`;
+  } else {
+    // For text content, escape HTML and wrap in quotes
+    return `<p class="at-story-line at-story-line--content">"${escapeHtml(stripHtml(content))}"</p>`;
+  }
 }
 
 /**

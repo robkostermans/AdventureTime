@@ -3,6 +3,7 @@
 export {
   initInventory,
   destroyInventory,
+  enableCollisionDetection,
   getInventoryItems,
   isInventoryOpen,
   toggleInventory,

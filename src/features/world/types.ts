@@ -18,4 +18,3 @@ export interface WorldState {
   position: Vector2D; // Current world offset (inverted from avatar position)
   bounds: WorldBounds; // World movement boundaries
 }
-

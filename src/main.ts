@@ -66,6 +66,7 @@ import type { AppConfig } from "./core/types";
     },
     design: {
       enabled: true, // Enable design layer with decorative blobs
+      backgroundColor: "rgba(223, 206, 191, 1)",
     },
     navigation: {
       enabled: true, // Enable navigation indicator pointing to nearest direction artifact

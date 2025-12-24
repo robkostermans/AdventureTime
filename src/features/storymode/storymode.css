@@ -53,6 +53,29 @@
   border-left: 2px solid #3a4a3a;
 }
 
+/* Media content (images, videos, etc.) */
+.at-story-line--media {
+  font-style: normal;
+  text-align: center;
+  padding: 12px 20px;
+}
+
+.at-story-line--media img {
+  max-width: 100%;
+  max-height: 150px;
+  object-fit: contain;
+  border-radius: 8px;
+  display: block;
+  margin: 0 auto;
+}
+
+.at-story-line--media video,
+.at-story-line--media iframe {
+  max-width: 100%;
+  max-height: 150px;
+  border-radius: 8px;
+}
+
 .at-story-line--question {
   color: #d0c090;
   margin-top: 12px;

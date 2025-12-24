@@ -116,8 +116,9 @@ export function initInventory(
     );
   }
 
-  // Start collision detection
-  startCollisionDetection();
+  // Note: Collision detection is NOT started here.
+  // Call enableCollisionDetection() after all features are initialized
+  // to prevent false collisions during initialization/resizing.
 
   isInitialized = true;
 
@@ -190,6 +191,33 @@ export function closeInventory(): void {
 // ============================================
 // Collision Detection
 // ============================================
+
+/**
+ * Enables collision detection.
+ * Should be called after all features are fully initialized to prevent
+ * false collisions during initialization or resizing.
+ */
+export function enableCollisionDetection(): void {
+  if (!isInitialized) {
+    console.warn(
+      "Cannot enable collision detection: inventory not initialized"
+    );
+    return;
+  }
+
+  // Don't start if already running
+  if (collisionCheckInterval !== null) {
+    return;
+  }
+
+  // Add a small delay to ensure all layouts are settled
+  setTimeout(() => {
+    startCollisionDetection();
+    if (config.debug) {
+      console.log("Collision detection enabled");
+    }
+  }, 100);
+}
 
 function startCollisionDetection(): void {
   const checkCollisions = () => {

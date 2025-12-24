@@ -20,6 +20,7 @@ export interface StoryModeConfig {
 
 export interface DesignConfig {
   enabled: boolean; // Whether design layer is enabled
+  backgroundColor: string; // Base background color for the layer
 }
 
 export interface ViewportConfig {

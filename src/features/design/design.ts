@@ -118,6 +118,11 @@ function createDesignLayer(): HTMLDivElement {
     {}
   );
 
+  // Set background color from config if provided
+  if (config.backgroundColor) {
+    layer.style.setProperty("--at-background-color", config.backgroundColor);
+  }
+
   return layer;
 }
 

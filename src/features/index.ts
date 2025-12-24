@@ -22,7 +22,11 @@ import {
   updateArtifactViewportStates,
 } from "./interaction";
 import { initDesignLayer, destroyDesignLayer } from "./design";
-import { initInventory, destroyInventory } from "./inventory";
+import {
+  initInventory,
+  destroyInventory,
+  enableCollisionDetection,
+} from "./inventory";
 import {
   initNavigation,
   destroyNavigation,
@@ -73,7 +77,7 @@ export async function initFeatures(
           {
             enabled: true,
             debug: config.debug,
-            backgroundColor: "transparent",
+            backgroundColor: config.design.backgroundColor,
           },
           worldContainer,
           getArtifacts
@@ -187,6 +191,12 @@ export async function initFeatures(
         setNavigationMoving(false);
       }
     });
+
+    // Enable collision detection AFTER all features are initialized
+    // This prevents false collisions during initialization/resizing
+    if (config.inventory.enabled) {
+      enableCollisionDetection();
+    }
 
     // Return cleanup function
     return () => {
