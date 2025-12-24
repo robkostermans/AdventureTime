@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AdventureTime - The Endless Ocean</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Georgia", "Times New Roman", serif;
+        line-height: 1.8;
+        color: #2d3436;
+        background: linear-gradient(135deg, #0052d4 0%, #65c7f7 50%, #9cecfb 100%);
+        min-height: 200vh;
+        padding: 40px;
+      }
+
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
+      }
+
+      header {
+        text-align: center;
+        margin-bottom: 60px;
+        padding: 40px;
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+      }
+
+      h1 {
+        font-size: 3rem;
+        color: #0984e3;
+        margin-bottom: 10px;
+        font-weight: 700;
+      }
+
+      .subtitle {
+        color: #7f8c8d;
+        font-size: 1.2rem;
+        font-style: italic;
+      }
+
+      section {
+        background: rgba(255, 255, 255, 0.95);
+        padding: 40px;
+        margin-bottom: 40px;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+      }
+
+      h2 {
+        color: #0984e3;
+        font-size: 1.8rem;
+        margin-bottom: 20px;
+        border-bottom: 3px solid #0984e3;
+        padding-bottom: 10px;
+      }
+
+      p {
+        margin-bottom: 20px;
+        text-align: justify;
+      }
+
+      a {
+        color: #0984e3;
+        text-decoration: none;
+        border-bottom: 2px solid transparent;
+        transition: border-color 0.3s;
+      }
+
+      a:hover {
+        border-bottom-color: #0984e3;
+      }
+
+      .tag {
+        display: inline-block;
+        background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+        color: white;
+        padding: 4px 12px;
+        border-radius: 16px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin: 4px;
+        box-shadow: 0 2px 8px rgba(9, 132, 227, 0.3);
+      }
+
+      .highlight {
+        background: linear-gradient(120deg, #a8edea 0%, #74b9ff 100%);
+        padding: 20px;
+        border-radius: 8px;
+        margin: 20px 0;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+        margin: 30px 0;
+      }
+
+      .card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 30px;
+        border-radius: 12px;
+        color: white;
+        text-align: center;
+      }
+
+      .card h3 {
+        font-size: 1.4rem;
+        margin-bottom: 10px;
+      }
+
+      footer {
+        text-align: center;
+        padding: 30px;
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 16px;
+        margin-top: 40px;
+      }
+
+      .portal-links {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        flex-wrap: wrap;
+        margin-top: 20px;
+      }
+
+      .portal-link {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 12px 24px;
+        border-radius: 25px;
+        font-weight: 600;
+        transition: transform 0.3s, box-shadow 0.3s;
+      }
+
+      .portal-link:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        border-bottom-color: transparent;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>🌊 The Endless Ocean</h1>
+        <p class="subtitle">Where waves carry stories from distant shores</p>
+      </header>
+
+      <section>
+        <h2>The Azure Depths</h2>
+        <p>
+          The Endless Ocean spans the entire western edge of the realm, its
+          waters connecting all lands. Ships from the
+          <a href="index.html">main realm</a> sail these waters in search of
+          adventure and fortune.
+        </p>
+        <p>
+          Beneath the waves lies the kingdom of
+          <span class="tag">Aquaria</span>, where merfolk guard
+          <span class="tag">Pearl Treasures</span> accumulated over centuries.
+        </p>
+        <div class="highlight">
+          <strong>🐚 Ocean Wisdom:</strong> "The sea does not reward the
+          impatient. Those who listen to its rhythms will find what they seek."
+        </div>
+      </section>
+
+      <section>
+        <h2>Denizens of the Deep</h2>
+        <div class="grid">
+          <div class="card">
+            <h3>🐬 Wise Dolphin</h3>
+            <p>Guide to lost sailors and seekers</p>
+          </div>
+          <div class="card">
+            <h3>🐙 Ancient Octopus</h3>
+            <p>Keeper of sunken secrets</p>
+          </div>
+          <div class="card">
+            <h3>🦈 Guardian Shark</h3>
+            <p>Protector of the deep trenches</p>
+          </div>
+        </div>
+        <p>
+          The creatures of the ocean have formed an ancient alliance. Finding a
+          <span class="tag">Coral Crown</span> grants the ability to communicate
+          with them and learn their secrets.
+        </p>
+      </section>
+
+      <section>
+        <h2>The Sunken City</h2>
+        <p>
+          Far below the surface, the ruins of an ancient civilization rest on
+          the ocean floor. The city of <span class="tag">Atlantara</span> once
+          rivaled the greatest kingdoms above. Now, its treasures—
+          <span class="tag">Sapphire Tridents</span> and
+          <span class="tag">Enchanted Shells</span>—await discovery.
+        </p>
+        <p>
+          The eastern shores lead to the <a href="forest.html">Enchanted Forest</a>,
+          while the northern coast eventually reaches the
+          <a href="mountain.html">Mountain Peak</a>. To the south, the waters
+          grow warmer as they approach the <a href="desert.html">Golden Desert</a>.
+        </p>
+      </section>
+
+      <section>
+        <h2>The Lighthouse of Guidance</h2>
+        <p>
+          On a rocky outcrop stands the ancient Lighthouse, its beam visible
+          across the entire ocean. The lighthouse keeper, an immortal sage,
+          offers wisdom to those who bring him a
+          <span class="tag">Starfish Charm</span>.
+        </p>
+        <div class="highlight">
+          <strong>⚠️ Warning:</strong> The Sirens' Reef lies to the southwest.
+          Many ships have been lost to the enchanting songs that echo from its
+          rocks.
+        </div>
+      </section>
+
+      <section>
+        <h2>Treasures of the Tides</h2>
+        <p>
+          The ocean generously gives to those who respect its power. Beaches
+          yield <span class="tag">Sea Glass</span> polished by centuries of
+          waves, while divers discover <span class="tag">Abyssal Gems</span> in
+          underwater caves.
+        </p>
+        <p>
+          The most sought-after treasure is the
+          <span class="tag">Heart of the Ocean</span>, a diamond said to control
+          the tides themselves. It rests somewhere in the deepest trench,
+          guarded by the Ocean Leviathan.
+        </p>
+      </section>
+
+      <footer>
+        <p>🌊 May fair winds fill your sails 🌊</p>
+        <div class="portal-links">
+          <a href="index.html" class="portal-link">🏠 Return Home</a>
+          <a href="forest.html" class="portal-link">🌲 Enchanted Forest</a>
+          <a href="desert.html" class="portal-link">🏜️ Golden Desert</a>
+          <a href="mountain.html" class="portal-link">⛰️ Mountain Peak</a>
+        </div>
+      </footer>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
+

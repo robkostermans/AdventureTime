@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AdventureTime - The Mountain Peak</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Georgia", "Times New Roman", serif;
+        line-height: 1.8;
+        color: #2d3436;
+        background: linear-gradient(135deg, #4b6cb7 0%, #182848 100%);
+        min-height: 200vh;
+        padding: 40px;
+      }
+
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
+      }
+
+      header {
+        text-align: center;
+        margin-bottom: 60px;
+        padding: 40px;
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+      }
+
+      h1 {
+        font-size: 3rem;
+        color: #6c5ce7;
+        margin-bottom: 10px;
+        font-weight: 700;
+      }
+
+      .subtitle {
+        color: #7f8c8d;
+        font-size: 1.2rem;
+        font-style: italic;
+      }
+
+      section {
+        background: rgba(255, 255, 255, 0.95);
+        padding: 40px;
+        margin-bottom: 40px;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+      }
+
+      h2 {
+        color: #6c5ce7;
+        font-size: 1.8rem;
+        margin-bottom: 20px;
+        border-bottom: 3px solid #6c5ce7;
+        padding-bottom: 10px;
+      }
+
+      p {
+        margin-bottom: 20px;
+        text-align: justify;
+      }
+
+      a {
+        color: #6c5ce7;
+        text-decoration: none;
+        border-bottom: 2px solid transparent;
+        transition: border-color 0.3s;
+      }
+
+      a:hover {
+        border-bottom-color: #6c5ce7;
+      }
+
+      .tag {
+        display: inline-block;
+        background: linear-gradient(135deg, #a29bfe 0%, #6c5ce7 100%);
+        color: white;
+        padding: 4px 12px;
+        border-radius: 16px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin: 4px;
+        box-shadow: 0 2px 8px rgba(108, 92, 231, 0.3);
+      }
+
+      .highlight {
+        background: linear-gradient(120deg, #dfe6e9 0%, #b2bec3 100%);
+        padding: 20px;
+        border-radius: 8px;
+        margin: 20px 0;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+        margin: 30px 0;
+      }
+
+      .card {
+        background: linear-gradient(135deg, #a29bfe 0%, #6c5ce7 100%);
+        padding: 30px;
+        border-radius: 12px;
+        color: white;
+        text-align: center;
+      }
+
+      .card h3 {
+        font-size: 1.4rem;
+        margin-bottom: 10px;
+      }
+
+      footer {
+        text-align: center;
+        padding: 30px;
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 16px;
+        margin-top: 40px;
+      }
+
+      .portal-links {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        flex-wrap: wrap;
+        margin-top: 20px;
+      }
+
+      .portal-link {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 12px 24px;
+        border-radius: 25px;
+        font-weight: 600;
+        transition: transform 0.3s, box-shadow 0.3s;
+      }
+
+      .portal-link:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        border-bottom-color: transparent;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>⛰️ The Mountain Peak</h1>
+        <p class="subtitle">Where the sky meets the earth in eternal embrace</p>
+      </header>
+
+      <section>
+        <h2>The Summit of Dreams</h2>
+        <p>
+          Rising above all other lands, the Mountain Peak touches the clouds
+          themselves. Pilgrims from the <a href="index.html">main realm</a>
+          journey here seeking enlightenment and the wisdom of the mountain
+          sages.
+        </p>
+        <p>
+          The peak is home to the <span class="tag">Temple of Winds</span>,
+          where monks have preserved <span class="tag">Ancient Scrolls</span>
+          containing knowledge from the beginning of time.
+        </p>
+        <div class="highlight">
+          <strong>🏔️ Mountain Wisdom:</strong> "The higher you climb, the
+          clearer your vision becomes. But remember, the descent is just as
+          important as the ascent."
+        </div>
+      </section>
+
+      <section>
+        <h2>Guardians of the Heights</h2>
+        <div class="grid">
+          <div class="card">
+            <h3>🦅 Storm Eagle</h3>
+            <p>Master of the mountain winds</p>
+          </div>
+          <div class="card">
+            <h3>🐐 Mountain Goat</h3>
+            <p>Sure-footed guide of treacherous paths</p>
+          </div>
+          <div class="card">
+            <h3>❄️ Snow Spirit</h3>
+            <p>Ancient keeper of frozen secrets</p>
+          </div>
+        </div>
+        <p>
+          The creatures here have adapted to the thin air and harsh conditions.
+          A <span class="tag">Feather of the Storm Eagle</span> is said to
+          protect travelers from avalanches and blizzards.
+        </p>
+      </section>
+
+      <section>
+        <h2>The Crystal Caves</h2>
+        <p>
+          Deep within the mountain lie caves filled with
+          <span class="tag">Amethyst Clusters</span> and
+          <span class="tag">Diamond Veins</span>. The caves glow with an inner
+          light, creating a spectacle that has inspired countless legends.
+        </p>
+        <p>
+          The southern slopes descend into the
+          <a href="forest.html">Enchanted Forest</a>, while the eastern face
+          overlooks the <a href="desert.html">Golden Desert</a> far below. To
+          the west, a treacherous path leads down to the shores of the
+          <a href="ocean.html">Endless Ocean</a>.
+        </p>
+      </section>
+
+      <section>
+        <h2>The Observatory</h2>
+        <p>
+          At the very summit stands an ancient observatory, built by a
+          civilization that could read the stars. The
+          <span class="tag">Star Charts</span> within predict events across all
+          realms, and the <span class="tag">Celestial Compass</span> can guide
+          travelers anywhere in the world.
+        </p>
+        <div class="highlight">
+          <strong>⚠️ Warning:</strong> The mountain is prone to sudden storms.
+          Always carry a <span class="tag">Warmth Stone</span> and never travel
+          alone above the tree line.
+        </div>
+      </section>
+
+      <section>
+        <h2>Treasures of the Heights</h2>
+        <p>
+          The mountain rewards the brave with rare minerals found nowhere else.
+          <span class="tag">Sky Iron</span> forged from meteorites makes the
+          finest weapons, while <span class="tag">Cloud Crystals</span> can
+          capture and store lightning.
+        </p>
+        <p>
+          The ultimate prize is the <span class="tag">Heart of the Mountain</span>,
+          a gem of pure starlight said to grant visions of the future. It rests
+          in the deepest chamber of the Crystal Caves, protected by the Mountain
+          Guardian.
+        </p>
+      </section>
+
+      <section>
+        <h2>The Eternal Flame</h2>
+        <p>
+          Despite the cold, a flame burns eternally at the Temple of Winds. This
+          <span class="tag">Sacred Flame</span> has never been extinguished and
+          is said to be a fragment of the sun itself. Pilgrims light torches
+          from it to carry blessings back to their homes.
+        </p>
+        <p>
+          The monks offer shelter and wisdom to all who make the journey. In
+          exchange, they ask only that travelers share stories of the lands
+          below, adding to their vast collection of
+          <span class="tag">World Chronicles</span>.
+        </p>
+      </section>
+
+      <footer>
+        <p>🏔️ May your spirit soar as high as the peaks 🏔️</p>
+        <div class="portal-links">
+          <a href="index.html" class="portal-link">🏠 Return Home</a>
+          <a href="forest.html" class="portal-link">🌲 Enchanted Forest</a>
+          <a href="desert.html" class="portal-link">🏜️ Golden Desert</a>
+          <a href="ocean.html" class="portal-link">🌊 Endless Ocean</a>
+        </div>
+      </footer>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
+

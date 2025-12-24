@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AdventureTime - The Enchanted Forest</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Georgia", "Times New Roman", serif;
+        line-height: 1.8;
+        color: #2d3436;
+        background: linear-gradient(135deg, #134e5e 0%, #71b280 100%);
+        min-height: 200vh;
+        padding: 40px;
+      }
+
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
+      }
+
+      header {
+        text-align: center;
+        margin-bottom: 60px;
+        padding: 40px;
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+      }
+
+      h1 {
+        font-size: 3rem;
+        color: #27ae60;
+        margin-bottom: 10px;
+        font-weight: 700;
+      }
+
+      .subtitle {
+        color: #7f8c8d;
+        font-size: 1.2rem;
+        font-style: italic;
+      }
+
+      section {
+        background: rgba(255, 255, 255, 0.95);
+        padding: 40px;
+        margin-bottom: 40px;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+      }
+
+      h2 {
+        color: #27ae60;
+        font-size: 1.8rem;
+        margin-bottom: 20px;
+        border-bottom: 3px solid #27ae60;
+        padding-bottom: 10px;
+      }
+
+      p {
+        margin-bottom: 20px;
+        text-align: justify;
+      }
+
+      a {
+        color: #27ae60;
+        text-decoration: none;
+        border-bottom: 2px solid transparent;
+        transition: border-color 0.3s;
+      }
+
+      a:hover {
+        border-bottom-color: #27ae60;
+      }
+
+      .tag {
+        display: inline-block;
+        background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+        color: white;
+        padding: 4px 12px;
+        border-radius: 16px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin: 4px;
+        box-shadow: 0 2px 8px rgba(39, 174, 96, 0.3);
+      }
+
+      .highlight {
+        background: linear-gradient(120deg, #a8e6cf 0%, #dcedc1 100%);
+        padding: 20px;
+        border-radius: 8px;
+        margin: 20px 0;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+        margin: 30px 0;
+      }
+
+      .card {
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        padding: 30px;
+        border-radius: 12px;
+        color: white;
+        text-align: center;
+      }
+
+      .card h3 {
+        font-size: 1.4rem;
+        margin-bottom: 10px;
+      }
+
+      footer {
+        text-align: center;
+        padding: 30px;
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 16px;
+        margin-top: 40px;
+      }
+
+      .portal-links {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        flex-wrap: wrap;
+        margin-top: 20px;
+      }
+
+      .portal-link {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 12px 24px;
+        border-radius: 25px;
+        font-weight: 600;
+        transition: transform 0.3s, box-shadow 0.3s;
+      }
+
+      .portal-link:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        border-bottom-color: transparent;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>🌲 The Enchanted Forest</h1>
+        <p class="subtitle">Where ancient trees whisper secrets of old</p>
+      </header>
+
+      <section>
+        <h2>The Heart of the Woods</h2>
+        <p>
+          Deep within the Enchanted Forest lies a realm untouched by time. The
+          <a href="index.html">main realm</a> connects to this mystical place
+          through ancient pathways known only to the wisest travelers.
+        </p>
+        <p>
+          The trees here are centuries old, their bark etched with
+          <span class="tag">Ancient Runes</span> that glow softly in the
+          moonlight. Legend speaks of a
+          <span class="tag">Forest Spirit</span> that guards the deepest
+          groves.
+        </p>
+        <div class="highlight">
+          <strong>🍃 Forest Wisdom:</strong> "Listen to the rustling leaves, for
+          they carry messages from those who walked these paths before you."
+        </div>
+      </section>
+
+      <section>
+        <h2>Creatures of the Grove</h2>
+        <div class="grid">
+          <div class="card">
+            <h3>🦌 Forest Deer</h3>
+            <p>Graceful guardians of the woodland paths</p>
+          </div>
+          <div class="card">
+            <h3>🦉 Wise Owl</h3>
+            <p>Keeper of nocturnal secrets</p>
+          </div>
+          <div class="card">
+            <h3>🐿️ Swift Squirrel</h3>
+            <p>Messenger between the treetops</p>
+          </div>
+        </div>
+        <p>
+          The creatures here live in harmony with the forest. Some say if you
+          find a <span class="tag">Golden Acorn</span>, the squirrels will lead
+          you to hidden treasures.
+        </p>
+      </section>
+
+      <section>
+        <h2>Hidden Treasures</h2>
+        <p>
+          Scattered throughout the forest are remnants of an ancient
+          civilization. Adventurers have reported finding
+          <span class="tag">Emerald Leaves</span> and
+          <span class="tag">Moss Crystals</span> that possess magical
+          properties.
+        </p>
+        <p>
+          The path to the <a href="mountain.html">Mountain Peak</a> begins at
+          the northern edge of the forest, where the trees thin and rocky
+          outcrops emerge. To the east, a sandy trail leads to the
+          <a href="desert.html">Golden Desert</a>, while westward lies the
+          <a href="ocean.html">Endless Ocean</a>.
+        </p>
+      </section>
+
+      <section>
+        <h2>The Sacred Clearing</h2>
+        <p>
+          At the very center of the forest lies a clearing where no tree grows.
+          Here, moonlight pools like liquid silver, and it is said that wishes
+          made here have a way of coming true.
+        </p>
+        <p>
+          Many seek the <span class="tag">Moonstone Pendant</span> rumored to be
+          buried beneath the clearing's center. Only those pure of heart may
+          find it.
+        </p>
+        <div class="highlight">
+          <strong>⚠️ Warning:</strong> Do not stray from the marked paths after
+          dark. The forest has a way of leading the unwary in circles.
+        </div>
+      </section>
+
+      <footer>
+        <p>🌿 May the forest guide your path 🌿</p>
+        <div class="portal-links">
+          <a href="index.html" class="portal-link">🏠 Return Home</a>
+          <a href="desert.html" class="portal-link">🏜️ Golden Desert</a>
+          <a href="ocean.html" class="portal-link">🌊 Endless Ocean</a>
+          <a href="mountain.html" class="portal-link">⛰️ Mountain Peak</a>
+        </div>
+      </footer>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
+
