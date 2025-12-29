@@ -1,6 +1,11 @@
 // Feature aggregation and initialization
 
-import { initViewport, destroyViewport } from "./viewport";
+import {
+  initViewport,
+  destroyViewport,
+  setCloseCallback,
+  fadeFromBlack,
+} from "./viewport";
 import {
   initAvatar,
   destroyAvatar,
@@ -33,7 +38,11 @@ import {
   destroyNavigation,
   setNavigationMoving,
 } from "./navigation";
-import { initStoryMode, destroyStoryMode } from "./storymode";
+import {
+  initStoryMode,
+  destroyStoryMode,
+  showArrivalStoryMode,
+} from "./storymode";
 import {
   initInput,
   destroyInput,
@@ -41,6 +50,14 @@ import {
   setAvatarDirectionCallback,
   setMovementStopCallback,
 } from "./input";
+import {
+  initPersistence,
+  destroyPersistence,
+  hasArrivedViaPortal,
+  getPreviousPageUrl,
+  clearArrivalFlag,
+} from "./persistence";
+import { initTravel, destroyTravel } from "./travel";
 import type { AppConfig, CleanupFunction } from "../core/types";
 import { debounce } from "../core/utils";
 
@@ -50,6 +67,24 @@ export async function initFeatures(
   const cleanupFunctions: CleanupFunction[] = [];
 
   try {
+    // Initialize persistence first (loads saved state)
+    initPersistence({
+      enabled: true,
+      debug: config.debug,
+    });
+    cleanupFunctions.push(destroyPersistence);
+
+    // Initialize travel feature
+    initTravel({
+      enabled: true,
+      debug: config.debug,
+    });
+    cleanupFunctions.push(destroyTravel);
+
+    // Check if we arrived via portal (for showing arrival message later)
+    const arrivedViaPortal = hasArrivedViaPortal();
+    const previousPageUrl = arrivedViaPortal ? getPreviousPageUrl() : undefined;
+
     // Initialize world first (wraps page content)
     initWorld({
       enabled: true,
@@ -107,6 +142,14 @@ export async function initFeatures(
       mobileBreakpoint: config.viewport.mobileBreakpoint,
     });
     cleanupFunctions.push(destroyViewport);
+
+    // Set up close button callback to destroy the app
+    setCloseCallback(() => {
+      if (config.debug) {
+        console.log("AdventureTime closing...");
+      }
+      destroyFeatures();
+    });
 
     // Initialize inventory system (depends on interaction layer AND viewport)
     if (config.interaction.enabled && config.inventory.enabled) {
@@ -199,6 +242,22 @@ export async function initFeatures(
     // This prevents false collisions during initialization/resizing
     if (config.inventory.enabled) {
       enableCollisionDetection();
+    }
+
+    // If we arrived via portal, show arrival message and fade in
+    if (arrivedViaPortal) {
+      // Get region name from page title
+      const regionName = document.title || window.location.pathname;
+
+      // Fade in from black (we should already be faded to black from the travel)
+      fadeFromBlack().then(() => {
+        // Show arrival story mode after fade completes
+        if (config.storyMode?.enabled) {
+          showArrivalStoryMode(regionName, previousPageUrl);
+        }
+        // Clear the arrival flag so it doesn't show again on refresh
+        clearArrivalFlag();
+      });
     }
 
     // Setup window resize handler to recalculate all layers

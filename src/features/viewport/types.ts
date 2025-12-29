@@ -12,5 +12,6 @@ export interface ViewportFeatureConfig extends FeatureConfig {
 export interface ViewportElements {
   container: HTMLDivElement;
   mask: HTMLDivElement;
+  fadeOverlay?: HTMLDivElement;
 }
 

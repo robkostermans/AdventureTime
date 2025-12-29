@@ -43,6 +43,24 @@
   font-size: 28px;
 }
 
+/* Dimensional portal (external links) - special styling */
+.at-artifact-dimensional {
+  font-size: 32px;
+  animation: at-dimensional-pulse 3s ease-in-out infinite;
+}
+
+@keyframes at-dimensional-pulse {
+  0%,
+  100% {
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3))
+      drop-shadow(0 0 6px rgba(138, 43, 226, 0.3));
+  }
+  50% {
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.4))
+      drop-shadow(0 0 12px rgba(138, 43, 226, 0.6));
+  }
+}
+
 .at-artifact-gold {
   font-size: 32px;
   animation: at-gold-shine 3s ease-in-out infinite;

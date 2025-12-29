@@ -9,6 +9,7 @@ export {
   setStoryModeCallbacks,
   showStoryMode,
   hideStoryMode,
+  showArrivalStoryMode,
 } from "./storymode";
 
 export type { StoryModeFeatureConfig, StoryState, StoryContent } from "./types";

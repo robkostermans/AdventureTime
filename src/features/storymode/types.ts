@@ -30,6 +30,9 @@ export interface StoryContent {
   introText?: string;
   originalHref?: string;
   isGhostMarker?: boolean; // True if this is a ghost marker (collected artifact location)
+  isArrival?: boolean; // True if this is an arrival message after portal travel
+  previousPageUrl?: string; // URL of the page we came from (for travel back)
+  isExternalPortal?: boolean; // True if this is an external/dimensional portal (different domain)
 }
 
 /**

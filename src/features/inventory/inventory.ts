@@ -20,6 +20,16 @@ import {
   showStoryMode,
   setStoryModeCallbacks,
 } from "../storymode";
+import {
+  travelToDestination,
+  travelBack,
+  isSameOrigin,
+} from "../travel";
+import {
+  getStoredInventory,
+  addInventoryItem as persistInventoryItem,
+  removeInventoryItem as unpersistInventoryItem,
+} from "../persistence";
 import type {
   InventoryFeatureConfig,
   InventoryItem,
@@ -81,9 +91,26 @@ export function initInventory(
     return;
   }
 
-  // Reset state
+  // Load persisted inventory items
+  const storedItems = getStoredInventory();
+  const loadedItems: InventoryItem[] = storedItems.map((stored) => ({
+    id: stored.id,
+    artifact: {
+      id: stored.id,
+      type: stored.type,
+      sourceElement: document.createElement("div"), // Placeholder
+      iconElement: document.createElement("div") as HTMLDivElement, // Placeholder
+      position: { x: 0, y: 0 },
+      size: { width: 0, height: 0 }, // Placeholder - not needed for inventory display
+    },
+    collectedAt: stored.collectedAt,
+    originalContent: stored.content,
+    originalHref: stored.href,
+  }));
+
+  // Reset state with loaded items
   state = {
-    items: [],
+    items: loadedItems,
     isOpen: false,
     expandedItemId: null,
     focusedItemId: null,
@@ -123,7 +150,8 @@ export function initInventory(
     setStoryModeCallbacks(
       handleStoryModeTake,
       handleStoryModeLeave,
-      handleStoryModeReturn
+      handleStoryModeReturn,
+      handleTravelBack
     );
   }
 
@@ -407,13 +435,25 @@ function handleStoryModeTake(artifactId: string): void {
   const artifact = currentStoryModeArtifact;
   const isPortal = artifact.type === "portal";
 
-  if (isPortal) {
-    // Portal: Travel action (placeholder for now)
+  if (isPortal && currentStoryModeHref) {
+    // Portal: Travel to destination
     if (config.debug) {
       console.log("Travel action triggered for portal:", currentStoryModeHref);
     }
-    // For now, just handle as leave - Travel feature will be added later
-    handleStoryModeLeave(artifactId);
+
+    // Check if it's a same-origin link (internal navigation)
+    if (isSameOrigin(currentStoryModeHref)) {
+      // Use travel system with fade transition
+      travelToDestination({
+        url: currentStoryModeHref,
+        title: currentStoryModeContent || undefined,
+      });
+    } else {
+      // External link - navigate directly
+      window.location.href = currentStoryModeHref;
+    }
+    
+    clearStoryModeState();
   } else {
     // Collect the artifact
     collectArtifact(
@@ -423,6 +463,16 @@ function handleStoryModeTake(artifactId: string): void {
     );
     clearStoryModeState();
   }
+}
+
+/**
+ * Handle travel back from arrival story mode
+ */
+function handleTravelBack(): void {
+  if (config.debug) {
+    console.log("Travel back triggered");
+  }
+  travelBack();
 }
 
 /**
@@ -528,8 +578,14 @@ function handleStoryModeReturn(artifactId: string): void {
   );
 
   if (itemIndex !== -1) {
+    const removedItem = state.items[itemIndex];
+    
     // Remove from inventory
     state.items.splice(itemIndex, 1);
+    
+    // Remove from persistence
+    unpersistInventoryItem(removedItem.id);
+    
     updateBagCounter();
     renderInventoryDialog();
 
@@ -624,17 +680,30 @@ function collectArtifact(
   originalContent: string,
   originalHref?: string
 ): void {
+  const collectedAt = Date.now();
+  const itemId = generateId("inv-item");
+  
   // Create inventory item
   const item: InventoryItem = {
-    id: generateId("inv-item"),
+    id: itemId,
     artifact,
-    collectedAt: Date.now(),
+    collectedAt,
     originalContent,
     originalHref,
   };
 
   // Add to inventory
   state.items.push(item);
+
+  // Persist to localStorage
+  persistInventoryItem({
+    id: itemId,
+    type: artifact.type,
+    content: originalContent,
+    href: originalHref,
+    collectedAt,
+    collectedFromUrl: window.location.pathname + window.location.search,
+  });
 
   // Remove from interaction layer and get position for ghost marker
   let artifactPosition: { x: number; y: number } | null = null;

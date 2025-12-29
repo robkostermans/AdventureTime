@@ -93,6 +93,19 @@
   margin-top: 8px;
 }
 
+.at-story-line--url {
+  color: #6090b0;
+  font-size: 12px;
+  padding-left: 20px;
+  margin-top: 4px;
+  opacity: 0.8;
+}
+
+.at-story-line--dimensional {
+  color: #b080d0;
+  border-left-color: #5a3a6a;
+}
+
 /* Artifact icon in text */
 .at-story-icon {
   display: inline-block;

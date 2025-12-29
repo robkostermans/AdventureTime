@@ -14,6 +14,12 @@ import {
   ARTIFACT_SELECTORS,
   BLOCK_LEVEL_TAGS,
 } from "./types";
+import {
+  getArtifactPositions,
+  saveArtifactPositions,
+  markArtifactCollected,
+} from "../persistence";
+import type { StoredArtifactPosition } from "../persistence";
 import interactionStyles from "./interaction.css?inline";
 
 let isInitialized = false;
@@ -23,6 +29,7 @@ let artifacts: Artifact[] = [];
 let ghostMarkers: GhostMarker[] = [];
 let processedElements: Set<HTMLElement> = new Set();
 let cleanupFunctions: CleanupFunction[] = [];
+let storedPositions: Map<string, StoredArtifactPosition> = new Map();
 
 const INTERACTION_LAYER_ID = "adventure-time-interaction-layer";
 const INTERACTION_STYLES_ID = "adventure-time-interaction-styles";
@@ -45,6 +52,15 @@ export function initInteraction(
   // Inject interaction layer styles from CSS module
   const styleCleanup = injectStyles(interactionStyles, INTERACTION_STYLES_ID);
   cleanupFunctions.push(styleCleanup);
+
+  // Load stored artifact positions from persistence
+  const stored = getArtifactPositions();
+  storedPositions.clear();
+  if (stored) {
+    stored.forEach((pos) => {
+      storedPositions.set(pos.id, pos);
+    });
+  }
 
   // Create the interaction layer
   interactionLayer = createInteractionLayer();
@@ -118,6 +134,9 @@ export function removeArtifact(
     const position = { ...artifact.position };
     artifact.iconElement.remove();
     artifacts.splice(index, 1);
+
+    // Mark as collected in persistence
+    markArtifactCollected(artifactId);
 
     if (config.debug) {
       console.log("Artifact removed:", artifactId);
@@ -334,6 +353,9 @@ function scanForArtifacts(worldContainer: HTMLElement): void {
   // Track if we've found the first direction artifact (for intro)
   let firstDirectionFound = false;
 
+  // Track positions to save
+  const positionsToSave: StoredArtifactPosition[] = [];
+
   // Process each artifact type in priority order
   for (const artifactType of sortedTypes) {
     const selector = ARTIFACT_SELECTORS[artifactType];
@@ -366,9 +388,44 @@ function scanForArtifacts(worldContainer: HTMLElement): void {
         }
       }
 
+      // Generate a deterministic ID for this element based on its position in DOM
+      const elementId = generateElementId(element, artifactType);
+      
+      // Check if this artifact was previously collected
+      const storedPos = storedPositions.get(elementId);
+      if (storedPos?.collected) {
+        // Create ghost marker instead of artifact
+        const rect = element.getBoundingClientRect();
+        const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        
+        // Use stored position or calculate from element
+        const posX = storedPos.position.x;
+        const posY = storedPos.position.y;
+        
+        // Create ghost marker at stored position
+        createGhostMarkerAtPosition(
+          { x: posX, y: posY },
+          storedPos.type,
+          element.innerHTML,
+          element,
+          element.tagName === "A" ? (element as HTMLAnchorElement).href : undefined
+        );
+        
+        // Mark element as processed
+        markElementAndDescendants(element);
+        
+        // Keep the position in save list
+        positionsToSave.push(storedPos);
+        return;
+      }
+
       // Create artifact for this element
-      const artifact = createArtifact(element, artifactType);
+      const artifact = createArtifact(element, artifactType, storedPos?.position);
       if (artifact) {
+        // Use the deterministic ID
+        artifact.id = elementId;
+        
         // Mark first direction artifact as intro if intro is enabled
         if (
           artifactType === "direction" &&
@@ -389,9 +446,88 @@ function scanForArtifacts(worldContainer: HTMLElement): void {
 
         // Mark this element and all descendants as processed
         markElementAndDescendants(element);
+        
+        // Store position for persistence
+        positionsToSave.push({
+          id: artifact.id,
+          type: artifact.type,
+          position: artifact.position,
+          collected: false,
+        });
       }
     });
   }
+  
+  // Save all positions to persistence
+  saveArtifactPositions(positionsToSave);
+}
+
+/**
+ * Generates a deterministic ID for an element based on its position in the DOM
+ */
+function generateElementId(element: HTMLElement, type: ArtifactType): string {
+  // Use a combination of tag, type, and content hash for deterministic ID
+  const tag = element.tagName.toLowerCase();
+  const textContent = element.textContent?.slice(0, 50) || "";
+  const hash = simpleHash(textContent);
+  return `artifact-${type}-${tag}-${hash}`;
+}
+
+/**
+ * Simple hash function for strings
+ */
+function simpleHash(str: string): string {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return Math.abs(hash).toString(36);
+}
+
+/**
+ * Creates a ghost marker at a specific position (for restored collected artifacts)
+ */
+function createGhostMarkerAtPosition(
+  position: { x: number; y: number },
+  type: ArtifactType,
+  content: string,
+  sourceElement: HTMLElement,
+  href?: string
+): string {
+  const ghostId = generateId("ghost");
+
+  // Create visual marker
+  const marker = createElement(
+    "div",
+    {
+      class: "at-ghost-marker",
+      "data-ghost-id": ghostId,
+    },
+    {}
+  ) as HTMLDivElement;
+  marker.textContent = "⭐";
+  marker.style.left = `${position.x}px`;
+  marker.style.top = `${position.y}px`;
+
+  const ghost: GhostMarker = {
+    id: ghostId,
+    position,
+    originalType: type,
+    originalContent: content,
+    sourceElement,
+    originalHref: href,
+    iconElement: marker,
+  };
+
+  ghostMarkers.push(ghost);
+
+  if (interactionLayer) {
+    interactionLayer.appendChild(marker);
+  }
+
+  return ghostId;
 }
 
 /**
@@ -511,11 +647,25 @@ function isElementVisible(element: HTMLElement): boolean {
 }
 
 /**
+ * Check if a URL is external (different domain)
+ */
+function isExternalUrl(url: string): boolean {
+  try {
+    const urlObj = new URL(url, window.location.href);
+    return urlObj.origin !== window.location.origin;
+  } catch {
+    // If URL parsing fails, assume it's internal (relative URL)
+    return false;
+  }
+}
+
+/**
  * Creates an artifact for a DOM element
  */
 function createArtifact(
   element: HTMLElement,
-  type: ArtifactType
+  type: ArtifactType,
+  storedPosition?: { x: number; y: number }
 ): Artifact | null {
   const rect = element.getBoundingClientRect();
 
@@ -523,20 +673,29 @@ function createArtifact(
   const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
   const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
 
-  // Calculate random position within the element bounds
-  // Add padding to keep icon away from edges (based on icon size ~30px)
-  const padding = 20;
-  const availableWidth = Math.max(rect.width - padding * 2, 0);
-  const availableHeight = Math.max(rect.height - padding * 2, 0);
+  let posX: number;
+  let posY: number;
 
-  // Random offset within available space
-  const randomOffsetX = availableWidth > 0 ? Math.random() * availableWidth : 0;
-  const randomOffsetY =
-    availableHeight > 0 ? Math.random() * availableHeight : 0;
+  if (storedPosition) {
+    // Use stored position
+    posX = storedPosition.x;
+    posY = storedPosition.y;
+  } else {
+    // Calculate random position within the element bounds
+    // Add padding to keep icon away from edges (based on icon size ~30px)
+    const padding = 20;
+    const availableWidth = Math.max(rect.width - padding * 2, 0);
+    const availableHeight = Math.max(rect.height - padding * 2, 0);
 
-  // Calculate final position (element left + padding + random offset)
-  const posX = rect.left + scrollLeft + padding + randomOffsetX;
-  const posY = rect.top + scrollTop + padding + randomOffsetY;
+    // Random offset within available space
+    const randomOffsetX = availableWidth > 0 ? Math.random() * availableWidth : 0;
+    const randomOffsetY =
+      availableHeight > 0 ? Math.random() * availableHeight : 0;
+
+    // Calculate final position (element left + padding + random offset)
+    posX = rect.left + scrollLeft + padding + randomOffsetX;
+    posY = rect.top + scrollTop + padding + randomOffsetY;
+  }
 
   // Create the icon element
   let artifactClass = `at-artifact at-artifact-${type}`;
@@ -548,6 +707,16 @@ function createArtifact(
     artifactClass += ` at-artifact-direction-h${headerLevel}`;
   }
 
+  // Check if this is an external/dimensional portal
+  let isExternalPortal = false;
+  if (type === "portal" && element.tagName === "A") {
+    const href = (element as HTMLAnchorElement).href;
+    if (href && isExternalUrl(href)) {
+      isExternalPortal = true;
+      artifactClass += " at-artifact-dimensional";
+    }
+  }
+
   const iconElement = createElement(
     "div",
     {
@@ -557,7 +726,8 @@ function createArtifact(
     {}
   );
 
-  iconElement.textContent = ARTIFACT_ICONS[type];
+  // Use galaxy icon for dimensional portals, regular icon otherwise
+  iconElement.textContent = isExternalPortal ? "🌌" : ARTIFACT_ICONS[type];
 
   // Position the icon at the random position within the element
   iconElement.style.left = `${posX}px`;

@@ -39,6 +39,7 @@ let state: StoryState = {
 let onTakeCallback: ((artifactId: string) => void) | null = null;
 let onLeaveCallback: ((artifactId: string) => void) | null = null;
 let onReturnCallback: ((artifactId: string) => void) | null = null;
+let onTravelBackCallback: (() => void) | null = null;
 
 // Current content being displayed
 let currentContent: StoryContent | null = null;
@@ -143,16 +144,18 @@ export function handleStoryModeClick(): boolean {
 }
 
 /**
- * Set callbacks for take/leave/return actions
+ * Set callbacks for take/leave/return/travel-back actions
  */
 export function setStoryModeCallbacks(
   onTake: (artifactId: string) => void,
   onLeave: (artifactId: string) => void,
-  onReturn?: (artifactId: string) => void
+  onReturn?: (artifactId: string) => void,
+  onTravelBack?: () => void
 ): void {
   onTakeCallback = onTake;
   onLeaveCallback = onLeave;
   onReturnCallback = onReturn || null;
+  onTravelBackCallback = onTravelBack || null;
 }
 
 /**
@@ -174,20 +177,35 @@ export function showStoryMode(
 ): void {
   if (!terminalElement) return;
 
+  // Check if this is an external portal (different domain)
+  const isExternalPortal =
+    artifact.type === "portal" && !!originalHref && isExternalUrl(originalHref);
+
+  // Use different icon for external/dimensional portals
+  let icon: string;
+  if (isGhostMarker) {
+    icon = "⭐";
+  } else if (artifact.isIntro) {
+    icon = "🎪";
+  } else if (isExternalPortal) {
+    icon = "🌌"; // Dimensional portal icon
+  } else {
+    icon = ARTIFACT_ICONS[artifact.type];
+  }
+
   currentContent = {
     artifactId: artifact.id,
     artifactType: artifact.type,
-    icon: isGhostMarker
-      ? "⭐"
-      : artifact.isIntro
-      ? "🎪"
-      : ARTIFACT_ICONS[artifact.type],
-    typeName: STORY_TYPE_LABELS[artifact.type],
+    icon,
+    typeName: isExternalPortal
+      ? "dimensional rift"
+      : STORY_TYPE_LABELS[artifact.type],
     content,
     isIntro,
     introText,
     originalHref,
     isGhostMarker,
+    isExternalPortal,
   };
 
   state = {
@@ -228,6 +246,7 @@ export function hideStoryMode(): void {
 
   terminalElement.classList.remove("at-story-terminal--visible");
   terminalElement.classList.remove("at-story-terminal--intro");
+  terminalElement.classList.remove("at-story-terminal--arrival");
 
   state = {
     isActive: false,
@@ -240,6 +259,53 @@ export function hideStoryMode(): void {
 
   // Resume movement
   resumeInput();
+}
+
+/**
+ * Show arrival story mode (after portal travel)
+ * @param regionName - Name of the region arrived at
+ * @param previousPageUrl - URL of the page we came from
+ */
+export function showArrivalStoryMode(
+  regionName: string,
+  previousPageUrl?: string
+): void {
+  if (!terminalElement) return;
+
+  currentContent = {
+    artifactId: "__arrival__",
+    artifactType: "direction",
+    icon: "🌍",
+    typeName: "region",
+    content: regionName,
+    isArrival: true,
+    previousPageUrl,
+  };
+
+  state = {
+    isActive: true,
+    currentArtifactId: "__arrival__",
+    selectedOptionIndex: 0,
+    phase: "discovery",
+  };
+
+  // Pause movement
+  pauseInput();
+
+  // Render the terminal content
+  renderTerminal();
+
+  // Show terminal
+  terminalElement.classList.add("at-story-terminal--visible");
+  terminalElement.classList.add("at-story-terminal--arrival");
+
+  // After discovery text, show choice
+  setTimeout(() => {
+    if (state.phase === "discovery") {
+      state.phase = "choice";
+      renderTerminal();
+    }
+  }, 800);
 }
 
 function createTerminalElement(): HTMLDivElement {
@@ -259,36 +325,82 @@ function renderTerminal(): void {
     isIntro,
     introText,
     isGhostMarker,
+    isArrival,
+    previousPageUrl,
+    originalHref,
+    isExternalPortal,
   } = currentContent;
-  const isDirection = artifactType === "direction";
+  const isDirection = artifactType === "direction" && !isArrival;
   const isPortal = artifactType === "portal";
   const isSingleChoice = isIntro || isDirection;
 
   let html = "";
 
   // Discovery line
-  if (isGhostMarker) {
+  if (isArrival) {
+    html += `<p class="at-story-line at-story-line--discovery">You have traveled to the <span class="at-story-icon">${icon}</span></p>`;
+    html += `<p class="at-story-line at-story-line--content at-story-line--region">"${escapeHtml(
+      content
+    )}"</p>`;
+    html += `<p class="at-story-line at-story-line--content">Before you lay yet more knowledge and artifacts to collect.</p>`;
+  } else if (isGhostMarker) {
     html += `<p class="at-story-line at-story-line--discovery">You found a <span class="at-story-icon">${icon}</span> ${typeName} here containing:</p>`;
   } else if (isIntro) {
     html += `<p class="at-story-line at-story-line--discovery">You have arrived at a <span class="at-story-icon">${icon}</span></p>`;
+  } else if (isExternalPortal) {
+    // External/dimensional portal - different discovery text
+    html += `<p class="at-story-line at-story-line--discovery">You have found a <span class="at-story-icon">${icon}</span> ${typeName}!</p>`;
   } else {
     html += `<p class="at-story-line at-story-line--discovery">You have found a <span class="at-story-icon">${icon}</span> ${typeName} containing:</p>`;
   }
 
   // Content line - check if content contains HTML elements that should be preserved (like images)
-  const contentHtml = renderContentLine(content);
-  if (isIntro && introText) {
-    html += contentHtml;
-    html += `<p class="at-story-line at-story-line--content">${escapeHtml(
-      introText
-    )}</p>`;
-  } else {
-    html += contentHtml;
+  if (!isArrival) {
+    if (isExternalPortal && originalHref) {
+      // External portal: show special content with URL
+      const displayUrl = formatPortalUrl(originalHref);
+      html += `<p class="at-story-line at-story-line--content at-story-line--dimensional">Go to "${escapeHtml(
+        stripHtml(content)
+      )}" and leave this dimension</p>`;
+      html += `<p class="at-story-line at-story-line--url">[${escapeHtml(
+        displayUrl
+      )}]</p>`;
+    } else {
+      const contentHtml = renderContentLine(content);
+      if (isIntro && introText) {
+        html += contentHtml;
+        html += `<p class="at-story-line at-story-line--content">${escapeHtml(
+          introText
+        )}</p>`;
+      } else {
+        html += contentHtml;
+      }
+
+      // For internal portals, show the URL in brackets
+      if (isPortal && originalHref) {
+        const displayUrl = formatPortalUrl(originalHref);
+        html += `<p class="at-story-line at-story-line--url">[${escapeHtml(
+          displayUrl
+        )}]</p>`;
+      }
+    }
   }
 
   // Choice phase - for single choice artifacts, just show a hint
   if (state.phase === "choice" || state.phase === "discovery") {
-    if (isSingleChoice) {
+    if (isArrival) {
+      // Arrival: show continue and optional travel back
+      html += `<div class="at-story-options">`;
+      html += renderOption(
+        0,
+        "Begin exploring",
+        state.selectedOptionIndex === 0
+      );
+      if (previousPageUrl) {
+        html += renderOption(1, "Travel back", state.selectedOptionIndex === 1);
+      }
+      html += `</div>`;
+    } else if (isSingleChoice) {
       // Single choice: just show a hint to continue
       const hintText = isIntro
         ? "Press any key to begin..."
@@ -315,8 +427,20 @@ function renderTerminal(): void {
 
       html += `<div class="at-story-options">`;
 
-      if (isPortal) {
-        // Portals have "Travel" option
+      if (isExternalPortal) {
+        // External/dimensional portals have "Teleport" option
+        html += renderOption(
+          0,
+          "Teleport to another dimension",
+          state.selectedOptionIndex === 0
+        );
+        html += renderOption(
+          1,
+          "Stay in this realm",
+          state.selectedOptionIndex === 1
+        );
+      } else if (isPortal) {
+        // Internal portals have "Travel" option
         html += renderOption(
           0,
           "Step through the portal",
@@ -342,7 +466,11 @@ function renderTerminal(): void {
     const tookIt = state.selectedOptionIndex === 0;
     let resultText: string;
 
-    if (isIntro) {
+    if (isArrival) {
+      resultText = tookIt
+        ? "Your exploration begins..."
+        : "You step back through the portal...";
+    } else if (isIntro) {
       resultText = "Your adventure begins...";
     } else if (isDirection) {
       resultText = STORY_LEAVE_RESULTS[artifactType];
@@ -351,6 +479,11 @@ function renderTerminal(): void {
       resultText = tookIt
         ? STORY_RETURN_RESULTS[artifactType]
         : STORY_GHOST_LEAVE_RESULTS[artifactType];
+    } else if (isExternalPortal) {
+      // External/dimensional portal results
+      resultText = tookIt
+        ? "You are being teleported to another dimension..."
+        : "You decide to stay in this realm... for now.";
     } else if (tookIt) {
       resultText = STORY_TAKE_RESULTS[artifactType];
     } else {
@@ -421,15 +554,42 @@ function selectOption(index: number): void {
 function confirmChoice(immediate: boolean = false): void {
   if (state.phase !== "choice" || !currentContent) return;
 
-  const { artifactId, artifactType, isIntro, isGhostMarker } = currentContent;
+  const {
+    artifactId,
+    artifactType,
+    isIntro,
+    isGhostMarker,
+    isArrival,
+    previousPageUrl,
+  } = currentContent;
   const tookIt = state.selectedOptionIndex === 0;
-  const isDirection = artifactType === "direction";
+  const isDirection = artifactType === "direction" && !isArrival;
   const isSingleChoice = isIntro || isDirection;
 
   // For single-choice with immediate flag, skip animations and close instantly
   if (isSingleChoice && immediate) {
     onLeaveCallback?.(artifactId);
     hideStoryMode();
+    return;
+  }
+
+  // For arrival, handle differently
+  if (isArrival) {
+    if (tookIt) {
+      // Begin exploring - just close
+      state.phase = "result";
+      renderTerminal();
+      setTimeout(() => {
+        hideStoryMode();
+      }, 600);
+    } else if (previousPageUrl) {
+      // Travel back
+      state.phase = "result";
+      renderTerminal();
+      setTimeout(() => {
+        onTravelBackCallback?.();
+      }, 600);
+    }
     return;
   }
 
@@ -616,4 +776,42 @@ function escapeHtml(text: string): string {
   const div = document.createElement("div");
   div.textContent = text;
   return div.innerHTML;
+}
+
+/**
+ * Format a portal URL for display
+ * Shows relative path for same-origin URLs, full URL for external
+ */
+function formatPortalUrl(url: string): string {
+  try {
+    const urlObj = new URL(url, window.location.href);
+
+    // If same origin, show just the pathname
+    if (urlObj.origin === window.location.origin) {
+      return urlObj.pathname + urlObj.search + urlObj.hash;
+    }
+
+    // For external URLs, show the full URL but truncate if too long
+    const fullUrl = urlObj.href;
+    if (fullUrl.length > 50) {
+      return fullUrl.substring(0, 47) + "...";
+    }
+    return fullUrl;
+  } catch {
+    // If URL parsing fails, return as-is
+    return url;
+  }
+}
+
+/**
+ * Check if a URL is external (different domain)
+ */
+function isExternalUrl(url: string): boolean {
+  try {
+    const urlObj = new URL(url, window.location.href);
+    return urlObj.origin !== window.location.origin;
+  } catch {
+    // If URL parsing fails, assume it's internal (relative URL)
+    return false;
+  }
 }
