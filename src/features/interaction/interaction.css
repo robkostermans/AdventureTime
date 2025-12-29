@@ -14,7 +14,11 @@
 .at-artifact {
   position: absolute;
   transform: translate(-50%, -50%);
-  font-size: 24px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   pointer-events: auto;
   cursor: pointer;
   transition: transform 0.2s ease, filter 0.2s ease;
@@ -40,12 +44,14 @@
 
 /* Artifact type specific styles */
 .at-artifact-portal {
-  font-size: 28px;
+  width: 36px;
+  height: 36px;
 }
 
 /* Dimensional portal (external links) - special styling */
 .at-artifact-dimensional {
-  font-size: 32px;
+  width: 40px;
+  height: 40px;
   animation: at-dimensional-pulse 3s ease-in-out infinite;
 }
 
@@ -75,50 +81,60 @@
 }
 
 .at-artifact-gold {
-  font-size: 32px;
+  width: 40px;
+  height: 40px;
   animation: at-gold-shine 3s ease-in-out infinite;
 }
 
 .at-artifact-silver {
-  font-size: 26px;
+  width: 32px;
+  height: 32px;
 }
 
 .at-artifact-diamond {
-  font-size: 30px;
+  width: 36px;
+  height: 36px;
   animation: at-diamond-sparkle 2.5s ease-in-out infinite;
 }
 
 .at-artifact-paper {
-  font-size: 22px;
+  width: 28px;
+  height: 28px;
 }
 
 /* Direction artifact sizes scale with header level */
-/* Base artifact size is 24px, h1 is 2x (48px), h4+ is standard (24px) */
+/* Base artifact size is 32px, h1 is 2x (64px), h4+ is standard (32px) */
 .at-artifact-direction {
-  font-size: 24px; /* Default/fallback */
+  width: 32px;
+  height: 32px;
 }
 
 .at-artifact-direction-h1 {
-  font-size: 48px; /* 2x base size */
+  width: 56px;
+  height: 56px;
 }
 
 .at-artifact-direction-h2 {
-  font-size: 40px; /* ~1.67x base size */
+  width: 48px;
+  height: 48px;
 }
 
 .at-artifact-direction-h3 {
-  font-size: 32px; /* ~1.33x base size */
+  width: 40px;
+  height: 40px;
 }
 
 .at-artifact-direction-h4,
 .at-artifact-direction-h5,
 .at-artifact-direction-h6 {
-  font-size: 24px; /* Standard artifact size */
+  width: 32px;
+  height: 32px;
 }
 
 /* Intro artifact - special styling for the first direction artifact */
 .at-artifact-intro {
-  font-size: 56px; /* Larger than h1 */
+  width: 56px;
+  height: 56px;
   /* animation: at-intro-pulse 2s ease-in-out infinite; */
 }
 
@@ -160,11 +176,15 @@
 .at-ghost-marker {
   position: absolute;
   transform: translate(-50%, -50%);
-  font-size: 16px;
-  opacity: 0.3;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.4;
   pointer-events: none;
   z-index: 9;
-  filter: grayscale(0.5) drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
   animation: at-ghost-fade-in 0.5s ease-out;
 }
 

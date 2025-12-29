@@ -27,6 +27,7 @@ A vanilla TypeScript application with modular architecture that:
 | Navigation Indicator    | Compass pointing to nearest direction artifact | [Navigation](./navigation.md)                           |
 | Story Mode              | Terminal-style text interface for interactions | [Story Mode](./storymode.md)                            |
 | Portal Travel           | Cross-page navigation and state persistence    | [Portal Travel](./portal-travel.md)                     |
+| Icon System             | SVG icons with theming support                 | [Icon System](./icon-system.md)                         |
 | Project Structure       | Overall file and folder organization           | [Project Structure](./project-structure.md)             |
 | Build System            | TypeScript compilation and bundling setup      | [Build System](./build-system.md)                       |
 | Module System           | How features are organized and imported        | [Module System](./module-system.md)                     |

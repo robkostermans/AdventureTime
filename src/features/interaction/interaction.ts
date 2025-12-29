@@ -10,7 +10,6 @@ import type {
 } from "./types";
 import {
   ARTIFACT_PRIORITY,
-  ARTIFACT_ICONS,
   ARTIFACT_SELECTORS,
   BLOCK_LEVEL_TAGS,
 } from "./types";
@@ -22,6 +21,7 @@ import {
   hasVisitedRealm,
 } from "../persistence";
 import type { StoredArtifactPosition } from "../persistence";
+import { getIconSvg, getArtifactIconName } from "../../core/icons";
 import interactionStyles from "./interaction.css?inline";
 
 let isInitialized = false;
@@ -167,7 +167,7 @@ export function createGhostMarker(
   const ghost = document.createElement("div") as HTMLDivElement;
   ghost.className = "at-ghost-marker";
   ghost.setAttribute("data-ghost-id", id);
-  ghost.textContent = "⭐";
+  ghost.innerHTML = getIconSvg("ghost", 28);
   ghost.style.left = `${position.x}px`;
   ghost.style.top = `${position.y}px`;
 
@@ -240,7 +240,9 @@ export function restoreArtifactFromGhost(ghostId: string): Artifact | null {
     {}
   );
 
-  iconElement.textContent = ARTIFACT_ICONS[ghost.originalType];
+  // Set SVG icon
+  const iconName = getArtifactIconName(ghost.originalType);
+  iconElement.innerHTML = getIconSvg(iconName, 32);
 
   // Position the icon at the ghost marker's position
   iconElement.style.left = `${ghost.position.x}px`;
@@ -443,9 +445,8 @@ function scanForArtifacts(worldContainer: HTMLElement): void {
           artifact.isIntro = true;
           firstDirectionFound = true;
 
-          // Update icon to intro icon
-          const introIcon = config.intro.icon || "🎪";
-          artifact.iconElement.textContent = introIcon;
+          // Update icon to intro SVG icon
+          artifact.iconElement.innerHTML = getIconSvg("intro", 36);
           artifact.iconElement.classList.add("at-artifact-intro");
         }
 
@@ -515,7 +516,7 @@ function createGhostMarkerAtPosition(
     },
     {}
   ) as HTMLDivElement;
-  marker.textContent = "⭐";
+  marker.innerHTML = getIconSvg("ghost", 28);
   marker.style.left = `${position.x}px`;
   marker.style.top = `${position.y}px`;
 
@@ -749,8 +750,9 @@ function createArtifact(
     {}
   );
 
-  // Use galaxy icon for dimensional portals, regular icon otherwise
-  iconElement.textContent = isExternalPortal ? "🌌" : ARTIFACT_ICONS[type];
+  // Set SVG icon - use dimensional icon for external portals
+  const iconName = getArtifactIconName(type, isExternalPortal);
+  iconElement.innerHTML = getIconSvg(iconName, 32);
 
   // Position the icon at the random position within the element
   iconElement.style.left = `${posX}px`;

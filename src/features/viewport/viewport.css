@@ -55,10 +55,6 @@
   transform: scale(0.95);
 }
 
-.at-close-button::before {
-  content: "✕";
-}
-
 /* Fade overlay for portal travel */
 .at-fade-overlay {
   position: absolute;

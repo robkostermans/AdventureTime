@@ -3,6 +3,7 @@
 import { createElement, injectStyles } from "../../core/utils";
 import type { CleanupFunction } from "../../core/types";
 import type { ViewportFeatureConfig, ViewportElements } from "./types";
+import { getIconSvg } from "../../core/icons";
 import viewportStyles from "./viewport.css?inline";
 
 let isInitialized = false;
@@ -141,6 +142,7 @@ function createViewportElements(): ViewportElements {
     { class: "at-close-button", title: "Close AdventureTime" },
     {}
   );
+  closeButton.innerHTML = getIconSvg("close", 16);
 
   closeButton.addEventListener("click", (e) => {
     e.stopPropagation();

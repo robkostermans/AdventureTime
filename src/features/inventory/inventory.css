@@ -26,7 +26,9 @@
 }
 
 .at-bag-icon {
-  font-size: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .at-bag-counter {
@@ -205,7 +207,9 @@
 }
 
 .at-inventory-grid-item-icon {
-  font-size: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: transform 0.2s ease;
 }
 
@@ -248,7 +252,9 @@
 }
 
 .at-inventory-tooltip-icon {
-  font-size: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .at-inventory-tooltip-title {

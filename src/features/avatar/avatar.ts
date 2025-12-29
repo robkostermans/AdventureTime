@@ -4,6 +4,7 @@ import { createElement, injectStyles } from "../../core/utils";
 import type { CleanupFunction, Vector2D } from "../../core/types";
 import type { AvatarFeatureConfig, AvatarState } from "./types";
 import { getViewportContainer } from "../viewport";
+import { getIconSvg } from "../../core/icons";
 import avatarStyles from "./avatar.css?inline";
 
 let isInitialized = false;
@@ -51,17 +52,8 @@ export function initAvatar(featureConfig: AvatarFeatureConfig): void {
   // Create avatar element
   avatarElement = createAvatarElement();
   
-  // Set CSS variables - size is always required, visual props only if provided
+  // Set CSS variable for avatar size
   avatarElement.style.setProperty("--at-avatar-size", `${config.size}px`);
-  
-  // Only override CSS defaults if explicitly configured
-  if (config.color) {
-    avatarElement.style.setProperty("--at-avatar-color", config.color);
-  }
-  if (config.shape) {
-    const borderRadius = config.shape === "circle" ? "50%" : "4px";
-    avatarElement.style.setProperty("--at-avatar-border-radius", borderRadius);
-  }
   
   // Append to viewport container so it shares stacking context with inventory
   const viewportContainer = getViewportContainer();
@@ -215,10 +207,9 @@ function createAvatarElement(): HTMLDivElement {
     {}
   );
 
-  // Add a simple face to the avatar for visual interest
-  // The face helps show rotation direction
-  const face = createElement("div", { class: "at-avatar-face" }, {});
-  avatar.appendChild(face);
+  // Add SVG icon as the avatar visual
+  // Size is set via CSS variable, we use a base size here that scales with the container
+  avatar.innerHTML = getIconSvg("avatar", 32);
 
   return avatar;
 }

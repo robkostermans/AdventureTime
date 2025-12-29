@@ -80,6 +80,14 @@ import type { AppConfig } from "./core/types";
       enabled: true, // Enable story mode (terminal-style text interface instead of popover)
       typewriterSpeed: 50, // Characters per second for typewriter effect
     },
+    // Optional: customize icon colors (uses warm adventure palette by default)
+    // icons: {
+    //   strokeColor: "#2c1810",    // Main stroke color
+    //   accentColor: "#d4a574",    // Accent color
+    //   portalColor: "#7b68ee",    // Portal artifacts
+    //   goldColor: "#ffd700",      // Gold artifacts
+    //   // See specs/icon-system.md for all options
+    // },
   };
 
   // Initialize and start application

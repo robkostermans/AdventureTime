@@ -26,7 +26,9 @@
 }
 
 .at-realms-btn-icon {
-  font-size: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .at-realms-counter {
@@ -229,8 +231,11 @@
 }
 
 .at-realm-icon {
-  font-size: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
+  margin-right: 8px;
 }
 
 .at-realm-info {

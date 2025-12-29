@@ -4,8 +4,8 @@
 import { createElement, injectStyles } from "../../core/utils";
 import type { CleanupFunction } from "../../core/types";
 import type { Artifact } from "../interaction/types";
-import { ARTIFACT_ICONS } from "../interaction/types";
 import { pauseInput, resumeInput } from "../input";
+import { getIconHtml, getArtifactIconName } from "../../core/icons";
 import type {
   StoryModeFeatureConfig,
   StoryState,
@@ -196,17 +196,16 @@ export function showStoryMode(
   const isExternalPortal =
     artifact.type === "portal" && !!originalHref && isExternalUrl(originalHref);
 
-  // Use different icon for external/dimensional portals
-  let icon: string;
+  // Get SVG icon based on artifact type
+  let iconName: string;
   if (isGhostMarker) {
-    icon = "⭐";
+    iconName = "ghost";
   } else if (artifact.isIntro) {
-    icon = "🎪";
-  } else if (isExternalPortal) {
-    icon = "🌌"; // Dimensional portal icon
+    iconName = "intro";
   } else {
-    icon = ARTIFACT_ICONS[artifact.type];
+    iconName = getArtifactIconName(artifact.type, isExternalPortal);
   }
+  const icon = getIconHtml(iconName as any, 24);
 
   currentContent = {
     artifactId: artifact.id,
@@ -555,17 +554,17 @@ function selectOptionVisual(index: number, options: NodeListOf<Element>): void {
     const arrow = option.querySelector(".at-story-arrow");
     if (i === index) {
       option.classList.add("at-story-option--selected");
-      if (arrow) arrow.textContent = "▶";
+      if (arrow) arrow.innerHTML = getIconHtml("arrow", 16);
     } else {
       option.classList.remove("at-story-option--selected");
-      if (arrow) arrow.textContent = "";
+      if (arrow) arrow.innerHTML = "";
     }
   });
 }
 
 function renderOption(index: number, text: string, selected: boolean): string {
   const selectedClass = selected ? " at-story-option--selected" : "";
-  const arrow = selected ? "▶" : "";
+  const arrow = selected ? getIconHtml("arrow", 16) : "";
   return `<div class="at-story-option${selectedClass}" data-index="${index}">
     <span class="at-story-arrow">${arrow}</span>
     <span class="at-story-text">${text}</span>

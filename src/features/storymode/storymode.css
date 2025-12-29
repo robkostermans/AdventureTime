@@ -139,10 +139,10 @@
 
 /* Artifact icon in text */
 .at-story-icon {
-  display: inline-block;
-  font-style: normal;
-  margin: 0 4px;
-  font-size: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 6px;
   vertical-align: middle;
 }
 
@@ -180,12 +180,14 @@
 
 /* Arrow indicator */
 .at-story-arrow {
-  margin-right: 12px;
-  color: #80d080;
-  font-weight: bold;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 8px;
   opacity: 0;
   transition: opacity 0.2s ease;
-  min-width: 16px;
+  min-width: 20px;
+  min-height: 20px;
 }
 
 .at-story-option:hover .at-story-arrow {

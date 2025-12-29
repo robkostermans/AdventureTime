@@ -14,6 +14,7 @@ import { getViewportContainer } from "../viewport";
 import { travelToDestination } from "../travel";
 import { pauseInput, resumeInput } from "../input";
 import { isStoryModeActive, hideStoryMode } from "../storymode";
+import { getIconHtml } from "../../core/icons";
 import cssContent from "./realms.css?inline";
 
 let isInitialized = false;
@@ -93,7 +94,7 @@ function createRealmsButton(): void {
   ) as HTMLDivElement;
 
   const icon = createElement("span", { class: "at-realms-btn-icon" }, {});
-  icon.textContent = "🗺️";
+  icon.innerHTML = getIconHtml("realms", 28);
   realmsButton.appendChild(icon);
 
   realmsCounter = createElement("span", { class: "at-realms-counter" }, {}) as HTMLDivElement;
@@ -217,10 +218,10 @@ function renderRealmsDialog(): void {
 
   realmsDialog.innerHTML = `
     <div class="at-realms-dialog-header">
-      <span class="at-realms-dialog-title">🗺️ Visited Realms</span>
+      <span class="at-realms-dialog-title">${getIconHtml("realms", 24)} Visited Realms</span>
       <span class="at-realms-dialog-count">${realms.length} realm${realms.length !== 1 ? "s" : ""}</span>
       ${showForgetAll ? `<button class="at-realms-forget-all" data-action="forget-all">Forget All</button>` : ""}
-      <button class="at-realms-dialog-close" aria-label="Close">✕</button>
+      <button class="at-realms-dialog-close" aria-label="Close">${getIconHtml("close", 20)}</button>
     </div>
     <div class="at-realms-dialog-content">
       ${
@@ -279,12 +280,14 @@ function renderRealmsDialog(): void {
  * Render a single realm item
  */
 function renderRealmItem(realm: VisitedRealm, isCurrent: boolean): string {
+  // Use SVG icon for realms list
+  const realmIcon = getIconHtml("realms", 32);
   return `
     <div class="at-realm-item${isCurrent ? " at-realm-item--current" : ""}" 
          data-url="${escapeHtml(realm.url)}"
          tabindex="0"
          role="button">
-      <span class="at-realm-icon">${realm.icon}</span>
+      <span class="at-realm-icon">${realmIcon}</span>
       <div class="at-realm-info">
         <div class="at-realm-title">${escapeHtml(realm.title)}</div>
         <div class="at-realm-url">${escapeHtml(realm.url)}</div>

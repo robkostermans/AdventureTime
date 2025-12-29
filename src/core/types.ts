@@ -1,5 +1,7 @@
 // Global type definitions for AdventureTime
 
+import type { IconTheme } from "./icons";
+
 export interface AppConfig {
   debug: boolean;
   viewport: ViewportConfig;
@@ -11,6 +13,7 @@ export interface AppConfig {
   design: DesignConfig;
   navigation?: NavigationConfig; // Optional navigation indicator feature
   storyMode?: StoryModeConfig; // Optional story mode (terminal-style text interface)
+  icons?: Partial<IconTheme>; // Optional icon theme customization
 }
 
 export interface StoryModeConfig {

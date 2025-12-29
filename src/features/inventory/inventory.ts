@@ -3,8 +3,8 @@
 import { createElement, injectStyles, generateId } from "../../core/utils";
 import type { CleanupFunction } from "../../core/types";
 import type { Artifact } from "../interaction/types";
-import { ARTIFACT_ICONS } from "../interaction/types";
 import type { GhostMarker } from "../interaction/types";
+import { getIconHtml, getArtifactIconName } from "../../core/icons";
 import {
   createGhostMarker,
   getGhostMarkers,
@@ -894,7 +894,7 @@ function createBagElement(): HTMLDivElement {
   );
 
   bag.innerHTML = `
-    <span class="at-bag-icon">🎒</span>
+    <span class="at-bag-icon">${getIconHtml("inventory", 28)}</span>
     <span class="at-bag-counter">0</span>
   `;
 
@@ -943,10 +943,10 @@ function renderInventoryDialog(): void {
 
   dialogElement.innerHTML = `
     <div class="at-inventory-dialog-header">
-      <span class="at-inventory-dialog-title">🎒 Inventory</span>
+      <span class="at-inventory-dialog-title">${getIconHtml("inventory", 24)} Inventory</span>
       <span class="at-inventory-dialog-count">${state.items.length} items</span>
       ${hasItems ? `<button class="at-inventory-return-all" data-action="return-all">Return All</button>` : ""}
-      <button class="at-inventory-dialog-close" data-action="close">✕</button>
+      <button class="at-inventory-dialog-close" data-action="close">${getIconHtml("close", 20)}</button>
     </div>
     <div class="at-inventory-dialog-content">
       ${itemsHtml}
@@ -997,7 +997,8 @@ function renderInventoryDialog(): void {
 }
 
 function renderInventoryGridItem(item: InventoryItem): string {
-  const icon = ARTIFACT_ICONS[item.artifact.type];
+  const iconName = getArtifactIconName(item.artifact.type);
+  const icon = getIconHtml(iconName as any, 32);
 
   return `
     <div class="at-inventory-grid-item" 
@@ -1031,7 +1032,8 @@ function showTooltipForItem(itemId: string): void {
 
   state.focusedItemId = itemId;
 
-  const icon = ARTIFACT_ICONS[item.artifact.type];
+  const iconName = getArtifactIconName(item.artifact.type);
+  const icon = getIconHtml(iconName as any, 28);
   const label = ARTIFACT_TYPE_LABELS[item.artifact.type];
 
   tooltipElement.innerHTML = `

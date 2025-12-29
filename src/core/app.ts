@@ -2,6 +2,7 @@
 
 import { initFeatures, destroyFeatures } from "../features";
 import type { AppConfig, CleanupFunction } from "./types";
+import { setIconTheme } from "./icons";
 
 let isInitialized = false;
 let cleanupFunctions: CleanupFunction[] = [];
@@ -13,6 +14,11 @@ export async function initApp(config: AppConfig): Promise<void> {
   }
 
   try {
+    // Set icon theme if provided
+    if (config.icons) {
+      setIconTheme(config.icons);
+    }
+
     // Initialize all features
     const featureCleanup = await initFeatures(config);
     cleanupFunctions.push(featureCleanup);
