@@ -9,6 +9,7 @@ import type { NavigationFeatureConfig } from "./types";
 import { moveToPosition, isInputPaused } from "../input";
 import { isStoryModeActive, handleStoryModeClick } from "../storymode";
 import { isInventoryOpen } from "../inventory";
+import { isRealmsDialogOpen } from "../realms";
 import { getWorldContainer, getWorldState } from "../world";
 import navigationStyles from "./navigation.css?inline";
 
@@ -298,8 +299,12 @@ function setupClickToMove(): void {
                                target.closest(".at-inventory-dialog") !== null ||
                                target.closest(".at-inventory-tooltip") !== null;
     
-    // If clicking on inventory elements or inventory is open, don't process click-to-move
-    if (isInventoryElement || isInventoryOpen()) {
+    // Check if click is on any realms element (button, dialog)
+    const isRealmsElement = target.closest(".at-realms-btn") !== null ||
+                            target.closest(".at-realms-dialog") !== null;
+    
+    // If clicking on inventory/realms elements or dialogs are open, don't process click-to-move
+    if (isInventoryElement || isInventoryOpen() || isRealmsElement || isRealmsDialogOpen()) {
       return;
     }
     
@@ -310,10 +315,17 @@ function setupClickToMove(): void {
         return; // Don't interfere with option clicks
       }
       
-      const handled = handleStoryModeClick();
+      // Check if click is on the terminal itself
+      const isOnTerminal = target.closest(".at-story-terminal") !== null;
+      
+      const handled = handleStoryModeClick(isOnTerminal);
       if (handled) {
-        // Story mode handled the click (dismissed single-choice or blocked multi-choice)
-        // Show indicator and start movement for single-choice dismissal
+        // If clicked on terminal, don't start movement
+        if (isOnTerminal) {
+          return;
+        }
+        
+        // Story mode handled the click (dismissed) - show indicator and start movement
         showClickIndicator(clickX, clickY);
         // Movement will start after story mode resumes input
         // Set a small delay to let story mode cleanup complete

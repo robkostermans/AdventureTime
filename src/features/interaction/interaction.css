@@ -61,6 +61,19 @@
   }
 }
 
+/* Visited portal (internal links to previously visited realms) - purple tint */
+.at-artifact-visited {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3))
+    drop-shadow(0 0 8px rgba(147, 112, 219, 0.5))
+    hue-rotate(260deg) saturate(1.2);
+}
+
+.at-artifact-visited:hover {
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.4))
+    drop-shadow(0 0 12px rgba(147, 112, 219, 0.7))
+    hue-rotate(260deg) saturate(1.3);
+}
+
 .at-artifact-gold {
   font-size: 32px;
   animation: at-gold-shine 3s ease-in-out infinite;

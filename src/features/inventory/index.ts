@@ -4,6 +4,8 @@ export {
   initInventory,
   destroyInventory,
   enableCollisionDetection,
+  setSkipIntroArtifact,
+  shouldSkipIntroArtifact,
   getInventoryItems,
   isInventoryOpen,
   toggleInventory,

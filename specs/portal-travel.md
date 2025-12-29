@@ -103,8 +103,17 @@ interface StoredGameState {
   inventory: StoredInventoryItem[];
   pages: Record<string, StoredPageState>;
   travelHistory: TravelHistoryEntry[];
+  visitedRealms: VisitedRealm[];  // All realms player has visited
   currentPageUrl: string;
   previousPageUrl?: string;  // Set when arriving via portal
+}
+
+interface VisitedRealm {
+  url: string;
+  title: string;
+  icon: string;         // Emoji icon for the realm
+  firstVisited: number; // Timestamp
+  lastVisited: number;  // Timestamp
 }
 
 interface StoredInventoryItem {
@@ -184,6 +193,7 @@ initTravel({ enabled: true, debug: false });
 | `features/travel/` | Portal travel logic and fade coordination |
 | `features/viewport/` | Fade overlay and transitions |
 | `features/storymode/` | Arrival message display |
+| `features/realms/` | Visited realms tracking and fast travel UI |
 
 ### Key Functions
 
@@ -200,10 +210,18 @@ getArtifactPositions(): StoredArtifactPosition[] | null
 saveArtifactPositions(artifacts: StoredArtifactPosition[]): void
 hasArrivedViaPortal(): boolean
 clearArrivalFlag(): void
+addVisitedRealm(url: string, title: string, icon?: string): void
+getVisitedRealms(): VisitedRealm[]
 
 // Viewport module
 fadeToBlack(): Promise<void>
 fadeFromBlack(): Promise<void>
+
+// Realms module
+openRealmsDialog(): void
+closeRealmsDialog(): void
+isRealmsDialogOpen(): boolean
+updateRealmsCounter(): void
 ```
 
 ## Visual Design
@@ -232,10 +250,41 @@ The fade overlay is a full-viewport black element that animates opacity:
 }
 ```
 
+## Realms Feature
+
+The realms feature tracks all pages the player has visited and provides a UI for fast travel.
+
+### Realms Button
+
+A map button (🗺️) appears beside the inventory bag. It shows a counter of visited realms and opens the realms dialog when clicked.
+
+### Realms Dialog
+
+A bottom sheet (similar to inventory) that displays:
+- List of all visited realms sorted by last visited
+- Each realm shows: icon, title, URL
+- "Travel" button for fast travel to that realm
+- Current realm is highlighted with "You are here" indicator
+
+### Arrival Behavior
+
+When arriving at a realm via portal:
+1. The original intro artifact is skipped (no duplicate welcome)
+2. An arrival story mode message is shown with options:
+   - "Begin exploring" - closes the message and starts the adventure
+   - "Travel back" - returns to the previous page
+
+When returning to the starting point (intro artifact):
+- If there's a previous page in history, shows "Continue exploring" and "Travel back" options
+- If no previous page, shows single-choice "Press any key to begin..."
+
+### Fast Travel
+
+From the realms dialog, players can instantly travel to any previously visited realm. This uses the same fade transition as portal travel.
+
 ## Future Considerations
 
 - **Cross-origin messaging**: Could enable travel between different domains with consent
-- **Travel history UI**: Display a visual timeline of visited pages
 - **Bookmark system**: Allow players to save and return to specific locations
 - **Multiplayer sync**: Share inventory/progress between devices
 

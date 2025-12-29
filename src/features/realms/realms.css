@@ -1,0 +1,290 @@
+/* Realms Styles */
+
+/* Realms Button - positioned beside inventory bag */
+.at-realms-btn {
+  position: absolute;
+  bottom: 20px;
+  right: 88px; /* Next to inventory bag (56px + 12px gap + 20px) */
+  width: 56px;
+  height: 56px;
+  background: linear-gradient(145deg, #4a3a6a, #3a2a5a);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border: 3px solid #6a5a8a;
+  pointer-events: auto;
+}
+
+.at-realms-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
+}
+
+.at-realms-btn-icon {
+  font-size: 28px;
+}
+
+.at-realms-counter {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 22px;
+  height: 22px;
+  background: #9b59b6;
+  color: white;
+  border-radius: 11px;
+  font-size: 12px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+  opacity: 0;
+  transform: scale(0);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.at-realms-counter--visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Realms Bottom Sheet */
+.at-realms-dialog {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 80%;
+  background: linear-gradient(180deg, #2a2040 0%, #1a1030 100%);
+  border-radius: 20px 20px 0 0;
+  z-index: 20;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.6);
+  border: 1px solid #4a3a6a;
+  border-bottom: none;
+  display: flex;
+  flex-direction: column;
+  font-family: system-ui, -apple-system, sans-serif;
+  transform: translateY(100%);
+}
+
+.at-realms-dialog--open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+/* Drag handle indicator */
+.at-realms-dialog::before {
+  content: "";
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 4px;
+  background: #5a4a7a;
+  border-radius: 2px;
+}
+
+.at-realms-dialog-header {
+  display: flex;
+  align-items: center;
+  padding: 20px 20px 12px;
+  border-bottom: 1px solid #4a3a6a;
+  gap: 12px;
+}
+
+.at-realms-dialog-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #e0d0f0;
+}
+
+.at-realms-dialog-count {
+  font-size: 14px;
+  color: #8a7aaa;
+  margin-left: auto;
+}
+
+.at-realms-forget-all {
+  background: linear-gradient(145deg, #e67e22, #d35400);
+  border: none;
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 6px;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.at-realms-forget-all:hover {
+  background: linear-gradient(145deg, #f39c12, #e67e22);
+}
+
+.at-realms-forget-all:active {
+  transform: scale(0.95);
+}
+
+.at-realms-forget-all:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(230, 126, 34, 0.4);
+}
+
+.at-realms-dialog-close {
+  background: transparent;
+  border: none;
+  color: #8a7aaa;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.at-realms-dialog-close:hover {
+  background: #4a3a6a;
+  color: #fff;
+}
+
+.at-realms-dialog-close:focus {
+  outline: none;
+  background: #4a3a6a;
+  color: #fff;
+  box-shadow: 0 0 0 2px rgba(138, 122, 170, 0.5);
+}
+
+.at-realms-dialog-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.at-realms-empty {
+  text-align: center;
+  color: #6a5a8a;
+  padding: 60px 20px;
+  font-size: 14px;
+}
+
+/* Realms List */
+.at-realms-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Realm Item */
+.at-realm-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, #3a2a5a 0%, #2a1a4a 100%);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+  border: 2px solid transparent;
+  outline: none;
+}
+
+.at-realm-item:hover {
+  background: linear-gradient(135deg, #4a3a6a 0%, #3a2a5a 100%);
+  transform: translateX(4px);
+}
+
+.at-realm-item:focus {
+  background: linear-gradient(135deg, #4a3a6a 0%, #3a2a5a 100%);
+  border-color: #8a7aaa;
+  box-shadow: 0 0 0 3px rgba(138, 122, 170, 0.3);
+}
+
+.at-realm-item--current {
+  border-color: #9b59b6;
+  background: linear-gradient(135deg, #4a3a6a 0%, #3a2a5a 100%);
+}
+
+.at-realm-item--current::after {
+  content: "You are here";
+  font-size: 10px;
+  color: #9b59b6;
+  position: absolute;
+  right: 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.at-realm-item {
+  position: relative;
+}
+
+.at-realm-icon {
+  font-size: 32px;
+  flex-shrink: 0;
+}
+
+.at-realm-info {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.at-realm-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #e0d0f0;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.at-realm-url {
+  font-size: 12px;
+  color: #8a7aaa;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.at-realm-travel-btn {
+  background: linear-gradient(145deg, #9b59b6, #8e44ad);
+  border: none;
+  color: white;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease;
+  flex-shrink: 0;
+}
+
+.at-realm-travel-btn:hover {
+  background: linear-gradient(145deg, #a569c6, #9b59b6);
+}
+
+.at-realm-travel-btn:active {
+  transform: scale(0.95);
+}
+
+.at-realm-travel-btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(155, 89, 182, 0.4);
+}
+
+.at-realm-travel-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+

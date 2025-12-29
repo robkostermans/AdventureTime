@@ -115,18 +115,25 @@ export function isStoryModeActive(): boolean {
 /**
  * Handle a click event during story mode.
  * For single-choice artifacts (intro/direction), clicking dismisses immediately.
- * For multi-choice artifacts, clicking is ignored (user must use options).
- * @returns true if the click was handled (story mode is active and dismissed), false otherwise
+ * For multi-choice artifacts, clicking outside the terminal triggers "leave" action.
+ * @param clickedOnTerminal - true if the click was on the terminal element itself
+ * @returns true if the click was handled (story mode is active), false otherwise
  */
-export function handleStoryModeClick(): boolean {
+export function handleStoryModeClick(
+  clickedOnTerminal: boolean = false
+): boolean {
   if (!state.isActive || !currentContent) return false;
 
   // During result phase, ignore clicks
   if (state.phase === "result") return true; // Consume the click but don't do anything
 
-  const { artifactType, isIntro } = currentContent;
+  // If clicked on the terminal itself, don't dismiss (let option clicks work)
+  if (clickedOnTerminal) return true;
+
+  const { artifactType, isIntro, previousPageUrl } = currentContent;
   const isDirection = artifactType === "direction";
-  const isSingleChoice = isIntro || isDirection;
+  const isIntroWithTravelBack = isIntro && !!previousPageUrl;
+  const isSingleChoice = (isIntro && !previousPageUrl) || isDirection;
 
   // For single-choice artifacts, clicking dismisses immediately (like pressing a movement key)
   if (
@@ -138,8 +145,14 @@ export function handleStoryModeClick(): boolean {
     return true;
   }
 
-  // For multi-choice artifacts, don't handle click (let user use the options)
-  // Return true to indicate story mode is active and click should not propagate
+  // For multi-choice artifacts, clicking outside selects "leave" (second option) and confirms
+  if (state.phase === "choice" || state.phase === "discovery") {
+    state.phase = "choice";
+    state.selectedOptionIndex = 1; // Select "leave" option
+    confirmChoice(true); // Immediate dismiss
+    return true;
+  }
+
   return true;
 }
 
@@ -166,6 +179,7 @@ export function setStoryModeCallbacks(
  * @param introText - Optional intro text
  * @param originalHref - Optional href for portals
  * @param isGhostMarker - Whether this is a ghost marker (collected artifact location)
+ * @param previousPageUrl - Optional URL for travel back option
  */
 export function showStoryMode(
   artifact: Artifact,
@@ -173,7 +187,8 @@ export function showStoryMode(
   isIntro?: boolean,
   introText?: string,
   originalHref?: string,
-  isGhostMarker?: boolean
+  isGhostMarker?: boolean,
+  previousPageUrl?: string
 ): void {
   if (!terminalElement) return;
 
@@ -206,6 +221,7 @@ export function showStoryMode(
     originalHref,
     isGhostMarker,
     isExternalPortal,
+    previousPageUrl,
   };
 
   state = {
@@ -332,7 +348,9 @@ function renderTerminal(): void {
   } = currentContent;
   const isDirection = artifactType === "direction" && !isArrival;
   const isPortal = artifactType === "portal";
-  const isSingleChoice = isIntro || isDirection;
+  // Intro with previousPageUrl has travel back option (not single choice)
+  const isIntroWithTravelBack = isIntro && !!previousPageUrl;
+  const isSingleChoice = (isIntro && !previousPageUrl) || isDirection;
 
   let html = "";
 
@@ -406,6 +424,16 @@ function renderTerminal(): void {
         ? "Press any key to begin..."
         : "Press any key to continue...";
       html += `<p class="at-story-line at-story-line--hint">${hintText}</p>`;
+    } else if (isIntroWithTravelBack) {
+      // Intro with travel back option
+      html += `<div class="at-story-options">`;
+      html += renderOption(
+        0,
+        "Continue exploring",
+        state.selectedOptionIndex === 0
+      );
+      html += renderOption(1, "Travel back", state.selectedOptionIndex === 1);
+      html += `</div>`;
     } else if (isGhostMarker) {
       // Ghost marker: show return/leave options
       html += `<p class="at-story-line at-story-line--question">Would you like to...</p>`;
@@ -564,7 +592,8 @@ function confirmChoice(immediate: boolean = false): void {
   } = currentContent;
   const tookIt = state.selectedOptionIndex === 0;
   const isDirection = artifactType === "direction" && !isArrival;
-  const isSingleChoice = isIntro || isDirection;
+  const isIntroWithTravelBack = isIntro && !!previousPageUrl;
+  const isSingleChoice = (isIntro && !previousPageUrl) || isDirection;
 
   // For single-choice with immediate flag, skip animations and close instantly
   if (isSingleChoice && immediate) {
@@ -583,6 +612,27 @@ function confirmChoice(immediate: boolean = false): void {
         hideStoryMode();
       }, 600);
     } else if (previousPageUrl) {
+      // Travel back
+      state.phase = "result";
+      renderTerminal();
+      setTimeout(() => {
+        onTravelBackCallback?.();
+      }, 600);
+    }
+    return;
+  }
+
+  // For intro with travel back option
+  if (isIntroWithTravelBack) {
+    if (tookIt) {
+      // Continue exploring - just close
+      state.phase = "result";
+      renderTerminal();
+      setTimeout(() => {
+        onLeaveCallback?.(artifactId);
+        hideStoryMode();
+      }, 600);
+    } else {
       // Travel back
       state.phase = "result";
       renderTerminal();
@@ -633,11 +683,12 @@ function handleKeyDown(e: KeyboardEvent): void {
     return;
   }
 
-  const { artifactType, isIntro } = currentContent;
+  const { artifactType, isIntro, previousPageUrl } = currentContent;
   const isDirection = artifactType === "direction";
-  const isSingleChoice = isIntro || isDirection;
+  const isIntroWithTravelBack = isIntro && !!previousPageUrl;
+  const isSingleChoice = (isIntro && !previousPageUrl) || isDirection;
 
-  // For single-choice artifacts, any key continues (even during discovery phase)
+  // For single-choice artifacts (no travel back option), any key continues (even during discovery phase)
   if (
     isSingleChoice &&
     (state.phase === "choice" || state.phase === "discovery")
@@ -740,22 +791,19 @@ function navigateOptions(direction: number): void {
 }
 
 /**
- * Renders the content line, preserving HTML for images and other media
+ * Renders the content line, preserving HTML markup
  */
 function renderContentLine(content: string): string {
-  // Check if content contains HTML elements that should be preserved
-  const hasImage = /<img\s/i.test(content);
-  const hasVideo = /<video\s/i.test(content);
-  const hasIframe = /<iframe\s/i.test(content);
-  const hasMedia = hasImage || hasVideo || hasIframe;
+  // Check if content contains any HTML tags
+  const hasHtml = /<[a-z][\s\S]*>/i.test(content);
 
-  if (hasMedia) {
-    // Render HTML content directly in a container div (for images, videos, etc.)
-    return `<div class="at-story-line at-story-line--content at-story-line--media">${content}</div>`;
+  if (hasHtml) {
+    // Render HTML content directly in a container div to preserve markup
+    return `<div class="at-story-line at-story-line--content at-story-line--html">${content}</div>`;
   } else {
-    // For text content, escape HTML and wrap in quotes
+    // For plain text content, wrap in quotes
     return `<p class="at-story-line at-story-line--content">"${escapeHtml(
-      stripHtml(content)
+      content
     )}"</p>`;
   }
 }

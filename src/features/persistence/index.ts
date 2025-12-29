@@ -11,6 +11,8 @@ export {
   getArtifactPositions,
   markArtifactCollected,
   markArtifactReturned,
+  markArtifactReturnedOnPage,
+  markAllArtifactsReturnedOnPage,
   getStoredInventory,
   addInventoryItem,
   removeInventoryItem,
@@ -23,6 +25,12 @@ export {
   hasVisitedCurrentPage,
   clearAllGameState,
   isPersistenceAvailable,
+  addVisitedRealm,
+  getVisitedRealms,
+  hasVisitedRealm,
+  clearVisitedRealmsExceptFirst,
+  getCurrentRealmUrl,
+  getCurrentRealmTitle,
 } from "./persistence";
 
 export type {
@@ -32,5 +40,6 @@ export type {
   StoredPageState,
   StoredArtifactPosition,
   TravelHistoryEntry,
+  VisitedRealm,
 } from "./types";
 

@@ -116,6 +116,31 @@
   margin-left: auto;
 }
 
+.at-inventory-return-all {
+  background: linear-gradient(145deg, #e67e22, #d35400);
+  border: none;
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 6px;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.at-inventory-return-all:hover {
+  background: linear-gradient(145deg, #f39c12, #e67e22);
+}
+
+.at-inventory-return-all:active {
+  transform: scale(0.95);
+}
+
+.at-inventory-return-all:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(230, 126, 34, 0.4);
+}
+
 .at-inventory-dialog-close {
   background: transparent;
   border: none;

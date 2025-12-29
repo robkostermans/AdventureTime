@@ -8,6 +8,7 @@ import type {
   StoredPageState,
   StoredArtifactPosition,
   TravelHistoryEntry,
+  VisitedRealm,
 } from "./types";
 
 let isInitialized = false;
@@ -85,6 +86,7 @@ export function getGameState(): StoredGameState {
     inventory: [],
     pages: {},
     travelHistory: [],
+    visitedRealms: [],
     currentPageUrl: getCurrentPageUrl(),
   };
 }
@@ -164,6 +166,33 @@ export function markArtifactReturned(artifactId: string): void {
       artifact.collected = false;
       savePageState(pageState);
     }
+  }
+}
+
+/**
+ * Mark an artifact as returned (uncollected) on a specific page
+ */
+export function markArtifactReturnedOnPage(artifactId: string, pageUrl: string): void {
+  const pageState = getPageState(pageUrl);
+  if (pageState) {
+    const artifact = pageState.artifacts.find((a) => a.id === artifactId);
+    if (artifact) {
+      artifact.collected = false;
+      savePageState(pageState);
+    }
+  }
+}
+
+/**
+ * Mark all artifacts as returned (uncollected) on a specific page
+ */
+export function markAllArtifactsReturnedOnPage(pageUrl: string): void {
+  const pageState = getPageState(pageUrl);
+  if (pageState) {
+    pageState.artifacts.forEach((artifact) => {
+      artifact.collected = false;
+    });
+    savePageState(pageState);
   }
 }
 
@@ -254,6 +283,86 @@ export function clearArrivalFlag(): void {
  */
 export function hasVisitedCurrentPage(): boolean {
   return getPageState() !== null;
+}
+
+// --- Visited Realms ---
+
+/**
+ * Add or update a visited realm
+ */
+export function addVisitedRealm(url: string, title: string, icon: string = "🏰"): void {
+  const state = getGameState();
+  if (!state.visitedRealms) {
+    state.visitedRealms = [];
+  }
+  
+  const existingIndex = state.visitedRealms.findIndex((r) => r.url === url);
+  const now = Date.now();
+  
+  if (existingIndex !== -1) {
+    // Update existing realm
+    state.visitedRealms[existingIndex].lastVisited = now;
+    state.visitedRealms[existingIndex].title = title;
+  } else {
+    // Add new realm
+    state.visitedRealms.push({
+      url,
+      title,
+      icon,
+      firstVisited: now,
+      lastVisited: now,
+    });
+  }
+  
+  saveGameState(state);
+}
+
+/**
+ * Get all visited realms
+ */
+export function getVisitedRealms(): VisitedRealm[] {
+  const state = getGameState();
+  return state.visitedRealms || [];
+}
+
+/**
+ * Check if a realm has been visited
+ */
+export function hasVisitedRealm(url: string): boolean {
+  const realms = getVisitedRealms();
+  return realms.some((r) => r.url === url);
+}
+
+/**
+ * Clear all visited realms except the first one (by firstVisited timestamp)
+ */
+export function clearVisitedRealmsExceptFirst(): void {
+  const state = getGameState();
+  if (!state.visitedRealms || state.visitedRealms.length <= 1) {
+    return;
+  }
+  
+  // Sort by firstVisited to find the oldest (first) realm
+  const sorted = [...state.visitedRealms].sort((a, b) => a.firstVisited - b.firstVisited);
+  
+  // Keep only the first realm
+  state.visitedRealms = [sorted[0]];
+  
+  saveGameState(state);
+}
+
+/**
+ * Get the current realm URL (normalized)
+ */
+export function getCurrentRealmUrl(): string {
+  return getCurrentPageUrl();
+}
+
+/**
+ * Get the current realm title
+ */
+export function getCurrentRealmTitle(): string {
+  return getCurrentPageTitle();
 }
 
 /**

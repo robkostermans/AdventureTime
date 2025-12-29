@@ -53,7 +53,38 @@
   border-left: 2px solid #3a4a3a;
 }
 
-/* Media content (images, videos, etc.) */
+/* HTML content (preserves original markup) */
+.at-story-line--html {
+  font-style: normal;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.at-story-line--html img {
+  max-width: 100%;
+  max-height: 150px;
+  object-fit: contain;
+  border-radius: 8px;
+  display: block;
+  margin: 8px auto;
+}
+
+.at-story-line--html video,
+.at-story-line--html iframe {
+  max-width: 100%;
+  max-height: 150px;
+  border-radius: 8px;
+}
+
+.at-story-line--html a {
+  color: #80c0e0;
+  text-decoration: underline;
+}
+
+.at-story-line--html a:hover {
+  color: #a0d0f0;
+}
+
+/* Legacy media class (for backwards compatibility) */
 .at-story-line--media {
   font-style: normal;
   text-align: center;

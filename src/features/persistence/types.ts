@@ -48,12 +48,24 @@ export interface TravelHistoryEntry {
 }
 
 /**
+ * Visited realm entry
+ */
+export interface VisitedRealm {
+  url: string;
+  title: string;
+  icon: string; // Emoji icon for the realm
+  firstVisited: number;
+  lastVisited: number;
+}
+
+/**
  * Complete stored game state
  */
 export interface StoredGameState {
   inventory: StoredInventoryItem[];
   pages: Record<string, StoredPageState>;
   travelHistory: TravelHistoryEntry[];
+  visitedRealms: VisitedRealm[];
   currentPageUrl: string;
   previousPageUrl?: string;
 }

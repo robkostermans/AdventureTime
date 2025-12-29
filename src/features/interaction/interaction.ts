@@ -18,6 +18,8 @@ import {
   getArtifactPositions,
   saveArtifactPositions,
   markArtifactCollected,
+  markArtifactReturned,
+  hasVisitedRealm,
 } from "../persistence";
 import type { StoredArtifactPosition } from "../persistence";
 import interactionStyles from "./interaction.css?inline";
@@ -265,8 +267,14 @@ export function restoreArtifactFromGhost(ghostId: string): Artifact | null {
   ghost.iconElement.remove();
   ghostMarkers.splice(index, 1);
 
+  // Mark the artifact as returned (not collected) in persistence
+  // We need to find the artifact ID that matches this ghost marker's position
+  // The ID is based on the element, so we regenerate it
+  const elementId = generateElementId(ghost.sourceElement, ghost.originalType);
+  markArtifactReturned(elementId);
+
   if (config.debug) {
-    console.log("Artifact restored from ghost:", artifact);
+    console.log("Artifact restored from ghost:", artifact, "elementId:", elementId);
   }
 
   return artifact;
@@ -707,13 +715,28 @@ function createArtifact(
     artifactClass += ` at-artifact-direction-h${headerLevel}`;
   }
 
-  // Check if this is an external/dimensional portal
+  // Check if this is an external/dimensional portal or a visited portal
   let isExternalPortal = false;
+  let isVisitedPortal = false;
   if (type === "portal" && element.tagName === "A") {
     const href = (element as HTMLAnchorElement).href;
-    if (href && isExternalUrl(href)) {
-      isExternalPortal = true;
-      artifactClass += " at-artifact-dimensional";
+    if (href) {
+      if (isExternalUrl(href)) {
+        isExternalPortal = true;
+        artifactClass += " at-artifact-dimensional";
+      } else {
+        // Check if this internal portal destination has been visited
+        try {
+          const url = new URL(href, window.location.origin);
+          const realmUrl = url.pathname + url.search;
+          if (hasVisitedRealm(realmUrl)) {
+            isVisitedPortal = true;
+            artifactClass += " at-artifact-visited";
+          }
+        } catch {
+          // Invalid URL, ignore
+        }
+      }
     }
   }
 

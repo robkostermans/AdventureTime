@@ -32,6 +32,7 @@ import {
   initInventory,
   destroyInventory,
   enableCollisionDetection,
+  setSkipIntroArtifact,
 } from "./inventory";
 import {
   initNavigation,
@@ -56,8 +57,12 @@ import {
   hasArrivedViaPortal,
   getPreviousPageUrl,
   clearArrivalFlag,
+  addVisitedRealm,
+  getCurrentRealmUrl,
+  getCurrentRealmTitle,
 } from "./persistence";
 import { initTravel, destroyTravel } from "./travel";
+import { initRealms, destroyRealms, updateRealmsCounter } from "./realms";
 import type { AppConfig, CleanupFunction } from "../core/types";
 import { debounce } from "../core/utils";
 
@@ -215,6 +220,19 @@ export async function initFeatures(
     });
     cleanupFunctions.push(destroyInput);
 
+    // Initialize realms feature (after viewport)
+    initRealms({
+      enabled: true,
+      debug: config.debug,
+    });
+    cleanupFunctions.push(destroyRealms);
+
+    // Register current realm as visited
+    const realmUrl = getCurrentRealmUrl();
+    const realmTitle = getCurrentRealmTitle();
+    addVisitedRealm(realmUrl, realmTitle, "🏰");
+    updateRealmsCounter();
+
     // Connect input to world movement
     setMovementCallback((direction) => {
       moveWorld(direction);
@@ -241,6 +259,11 @@ export async function initFeatures(
     // Enable collision detection AFTER all features are initialized
     // This prevents false collisions during initialization/resizing
     if (config.inventory.enabled) {
+      // If we arrived via portal, skip the intro artifact collision
+      // (the arrival message is shown instead)
+      if (arrivedViaPortal) {
+        setSkipIntroArtifact(true);
+      }
       enableCollisionDetection();
     }
 
@@ -293,6 +316,7 @@ export async function initFeatures(
 }
 
 export function destroyFeatures(): void {
+  destroyRealms();
   destroyInput();
   destroyNavigation();
   destroyInventory();
@@ -378,3 +402,4 @@ export * from "./design";
 export * from "./inventory";
 export * from "./navigation";
 export * from "./storymode";
+export * from "./realms";

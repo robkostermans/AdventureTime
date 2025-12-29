@@ -17,6 +17,7 @@ export interface InventoryItem {
   collectedAt: number; // Timestamp
   originalContent: string; // HTML content of the source element
   originalHref?: string; // For portals, the link URL
+  collectedFromUrl?: string; // URL of the page where this item was collected
 }
 
 /**
