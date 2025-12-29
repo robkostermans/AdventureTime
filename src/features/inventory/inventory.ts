@@ -21,11 +21,8 @@ import {
   hideStoryMode,
   setStoryModeCallbacks,
 } from "../storymode";
-import {
-  travelToDestination,
-  travelBack,
-  isSameOrigin,
-} from "../travel";
+import { openRealmsDialog } from "../realms";
+import { travelToDestination, travelBack, isSameOrigin } from "../travel";
 import {
   getStoredInventory,
   addInventoryItem as persistInventoryItem,
@@ -74,6 +71,9 @@ const COLLISION_COOLDOWN_MS = 500; // 500ms cooldown after dismissing
 
 // Flag to skip intro artifact collision (when arrived via portal)
 let skipIntroArtifact: boolean = false;
+
+// Track if intro artifact has been visited (initial story mode dismissed)
+let introArtifactVisited: boolean = false;
 
 const INVENTORY_STYLES_ID = "adventure-time-inventory-styles";
 const BAG_ID = "adventure-time-inventory-bag";
@@ -135,7 +135,7 @@ export function initInventory(
   // Append to viewport container so they're positioned relative to the viewport
   const viewportContainer = getViewportContainer();
   const container = viewportContainer || document.body;
-  
+
   container.appendChild(bagElement);
   container.appendChild(dialogElement);
   container.appendChild(tooltipElement);
@@ -172,7 +172,9 @@ export function initInventory(
   isInitialized = true;
 
   if (config.debug) {
-    console.log("Inventory initialized", config, { loadedItems: state.items.length });
+    console.log("Inventory initialized", config, {
+      loadedItems: state.items.length,
+    });
   }
 }
 
@@ -195,6 +197,8 @@ export function destroyInventory(): void {
   lastDismissedArtifactId = null;
   lastDismissedGhostMarkerId = null;
   collisionCooldownUntil = 0;
+  skipIntroArtifact = false;
+  introArtifactVisited = false;
 
   state = {
     items: [],
@@ -331,6 +335,15 @@ function startCollisionDetection(): void {
         }
         // Skip intro artifact if we arrived via portal (arrival message is shown instead)
         if (collidingArtifact.isIntro && skipIntroArtifact) {
+          collisionCheckInterval = requestAnimationFrame(checkCollisions);
+          return;
+        }
+        // If returning to intro artifact after initial visit, open realms dialog
+        if (collidingArtifact.isIntro && introArtifactVisited) {
+          // Set cooldown to prevent re-triggering
+          lastDismissedArtifactId = collidingArtifact.id;
+          collisionCooldownUntil = Date.now() + COLLISION_COOLDOWN_MS;
+          openRealmsDialog();
           collisionCheckInterval = requestAnimationFrame(checkCollisions);
           return;
         }
@@ -505,7 +518,7 @@ function handleStoryModeTake(artifactId: string): void {
       // External link - navigate directly
       window.location.href = currentStoryModeHref;
     }
-    
+
     clearStoryModeState();
   } else {
     // Collect the artifact
@@ -533,7 +546,10 @@ function handleTravelBack(): void {
  */
 function handleStoryModeLeave(artifactId: string): void {
   // Check if this is a ghost marker
-  if (currentStoryModeGhostMarker && currentStoryModeGhostMarker.id === artifactId) {
+  if (
+    currentStoryModeGhostMarker &&
+    currentStoryModeGhostMarker.id === artifactId
+  ) {
     handleGhostMarkerLeave();
     return;
   }
@@ -541,6 +557,11 @@ function handleStoryModeLeave(artifactId: string): void {
   // Check if this is a regular artifact
   if (!currentStoryModeArtifact || currentStoryModeArtifact.id !== artifactId) {
     return;
+  }
+
+  // Mark intro artifact as visited when dismissed
+  if (currentStoryModeArtifact.isIntro) {
+    introArtifactVisited = true;
   }
 
   // Track dismissed artifact for cooldown
@@ -632,13 +653,13 @@ function handleStoryModeReturn(artifactId: string): void {
 
   if (itemIndex !== -1) {
     const removedItem = state.items[itemIndex];
-    
+
     // Remove from inventory
     state.items.splice(itemIndex, 1);
-    
+
     // Remove from persistence
     unpersistInventoryItem(removedItem.id);
-    
+
     updateBagCounter();
     renderInventoryDialog();
 
@@ -675,12 +696,17 @@ function returnAllItems(): void {
   const allGhostMarkers = getGhostMarkers();
 
   if (config.debug) {
-    console.log("Returning all items. Total items:", state.items.length, "Ghost markers on page:", allGhostMarkers.length);
+    console.log(
+      "Returning all items. Total items:",
+      state.items.length,
+      "Ghost markers on page:",
+      allGhostMarkers.length
+    );
   }
 
   // Collect unique page URLs that need artifacts marked as returned
   const pagesToUpdate = new Set<string>();
-  
+
   // Track restored artifact IDs to prevent immediate re-collision
   const restoredArtifactIds: string[] = [];
 
@@ -740,12 +766,15 @@ function returnAllItems(): void {
   // Set extended cooldown to prevent immediate collision with any restored artifact
   // Use a longer cooldown since multiple artifacts may have been restored
   collisionCooldownUntil = Date.now() + COLLISION_COOLDOWN_MS * 2;
-  
+
   // Track all restored artifact IDs so collision detection skips them during cooldown
   returnAllDismissedIds = new Set(restoredArtifactIds);
 
   if (config.debug) {
-    console.log("All items returned. Inventory cleared. Pages updated:", Array.from(pagesToUpdate));
+    console.log(
+      "All items returned. Inventory cleared. Pages updated:",
+      Array.from(pagesToUpdate)
+    );
   }
 }
 
@@ -826,7 +855,7 @@ function collectArtifact(
   const collectedAt = Date.now();
   const itemId = generateId("inv-item");
   const collectedFromUrl = window.location.pathname + window.location.search;
-  
+
   // Create inventory item
   const item: InventoryItem = {
     id: itemId,
@@ -938,15 +967,27 @@ function renderInventoryDialog(): void {
 
   const hasItems = state.items.length > 0;
   const itemsHtml = hasItems
-    ? `<div class="at-inventory-grid">${state.items.map((item) => renderInventoryGridItem(item)).join("")}</div>`
+    ? `<div class="at-inventory-grid">${state.items
+        .map((item) => renderInventoryGridItem(item))
+        .join("")}</div>`
     : `<div class="at-inventory-empty">Your bag is empty. Explore and collect artifacts!</div>`;
 
   dialogElement.innerHTML = `
     <div class="at-inventory-dialog-header">
-      <span class="at-inventory-dialog-title">${getIconHtml("inventory", 24)} Inventory</span>
+      <span class="at-inventory-dialog-title">${getIconHtml(
+        "inventory",
+        24
+      )} Inventory</span>
       <span class="at-inventory-dialog-count">${state.items.length} items</span>
-      ${hasItems ? `<button class="at-inventory-return-all" data-action="return-all">Return All</button>` : ""}
-      <button class="at-inventory-dialog-close" data-action="close">${getIconHtml("close", 20)}</button>
+      ${
+        hasItems
+          ? `<button class="at-inventory-return-all" data-action="return-all">Return All</button>`
+          : ""
+      }
+      <button class="at-inventory-dialog-close" data-action="close">${getIconHtml(
+        "close",
+        20
+      )}</button>
     </div>
     <div class="at-inventory-dialog-content">
       ${itemsHtml}
@@ -958,7 +999,9 @@ function renderInventoryDialog(): void {
   closeBtn?.addEventListener("click", () => closeInventory());
 
   // Return all button
-  const returnAllBtn = dialogElement.querySelector('[data-action="return-all"]');
+  const returnAllBtn = dialogElement.querySelector(
+    '[data-action="return-all"]'
+  );
   returnAllBtn?.addEventListener("click", () => returnAllItems());
 
   // Add grid item listeners (click to show tooltip)
@@ -1044,7 +1087,11 @@ function showTooltipForItem(itemId: string): void {
     <div class="at-inventory-tooltip-content">
       <div class="at-inventory-tooltip-preview">${item.originalContent}</div>
     </div>
-    ${item.originalHref ? `<div class="at-inventory-tooltip-link">→ ${item.originalHref}</div>` : ""}
+    ${
+      item.originalHref
+        ? `<div class="at-inventory-tooltip-link">→ ${item.originalHref}</div>`
+        : ""
+    }
     <div class="at-inventory-tooltip-hint">Press Esc to close • Tab to navigate</div>
   `;
 
@@ -1076,7 +1123,7 @@ function setupInventoryKeyboardNavigation(): void {
     if (e.key === "Escape") {
       e.preventDefault();
       e.stopPropagation();
-      
+
       if (state.focusedItemId) {
         // If tooltip is visible, just hide it
         hideTooltip();
